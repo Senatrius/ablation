@@ -1,6 +1,6 @@
 [gd_resource type="Resource" script_class="ShipCore" format=3 uid="uid://bsds4te668566"]
 
-[ext_resource type="Script" uid="uid://dnaj27pdx4eo4" path="res://data/resources/cores.gd" id="1_uxuso"]
+[ext_resource type="Script" uid="uid://dnaj27pdx4eo4" path="res://resources/ship_core.gd" id="1_uxuso"]
 
 [resource]
 script = ExtResource("1_uxuso")

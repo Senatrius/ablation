@@ -1,6 +1,6 @@
-class_name PlayerMovement extends RefCounted
+class_name ShipMovement extends RefCounted
 
-func integrate_forces(core: ShipCore, is_accelerating: bool, is_decelerating: bool, turning: float, state: PhysicsDirectBodyState2D) -> void:
+static func integrate_forces(core: ShipCore, is_accelerating: bool, is_decelerating: bool, turning: float, state: PhysicsDirectBodyState2D) -> void:
 	if core == null:
 		return
 
@@ -15,7 +15,7 @@ func integrate_forces(core: ShipCore, is_accelerating: bool, is_decelerating: bo
 	var turn_rate := core.turn_acceleration if turning != 0.0 else core.turn_braking
 	state.angular_velocity = move_toward(state.angular_velocity, target_spin, deg_to_rad(turn_rate) * state.step)
 
-func thrust(core: ShipCore, state: PhysicsDirectBodyState2D, direction: Vector2, top_speed: float) -> void:
+static func thrust(core: ShipCore, state: PhysicsDirectBodyState2D, direction: Vector2, top_speed: float) -> void:
 	var speed_along := state.linear_velocity.dot(direction)
 	var t := clampf(speed_along / top_speed, 0.0, 1.0)
 	var strength := core.acceleration_curve.sample_baked(t) if core.acceleration_curve else 1.0 - t
