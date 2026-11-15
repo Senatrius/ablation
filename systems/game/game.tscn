@@ -9,7 +9,6 @@ script = ExtResource("1_877rp")
 
 [node name="Player" parent="." unique_id=877456594 instance=ExtResource("2_mprjm")]
 position = Vector2(126, 90)
-mass = 250.0
 
 [node name="Parallax2D" type="Parallax2D" parent="." unique_id=341620252]
 show_behind_parent = true

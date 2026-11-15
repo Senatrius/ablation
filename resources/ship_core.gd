@@ -1,9 +1,4 @@
-extends Resource
-class_name ShipCore
-
-@export_group("Info")
-@export var display_name: String
-@export_multiline var description: String
+class_name ShipCore extends ContentDefinition
 
 @export_group("Thrust")
 @export var engine_acceleration: float
