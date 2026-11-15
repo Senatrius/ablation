@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="ShipCore" format=3 uid="uid://bsds4te668566"]
+
+[ext_resource type="Script" uid="uid://dnaj27pdx4eo4" path="res://data/resources/cores.gd" id="1_uxuso"]
+
+[resource]
+script = ExtResource("1_uxuso")
+display_name = "Standard Core"
+description = "A standard issue ship core suited for most everyday tasks."
+engine_acceleration = 150.0
+max_speed = 230.0
+max_reverse_speed = 60.0
+max_turn_speed = 120.0
+turn_acceleration = 300.0
+turn_braking = 160.0
+metadata/_custom_type_script = "uid://dnaj27pdx4eo4"

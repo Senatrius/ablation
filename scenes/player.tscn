@@ -1,27 +1,24 @@
 [gd_scene format=3 uid="uid://dlix0ngaj4lt4"]
 
-[ext_resource type="Script" uid="uid://2w0cf0ts7k87" path="res://scripts/systems/controls/movement.gd" id="1_qhqgy"]
-[ext_resource type="Texture2D" uid="uid://bv8tjdr64pdkb" path="res://icon.svg" id="3_qlg0r"]
-
-[sub_resource type="Curve" id="Curve_qhqgy"]
-_data = [Vector2(0, 0.32584274), 0.0, 1.9503253, 0, 0, Vector2(0.4175258, 0.8651686), 0.6083092, 0.6083092, 0, 0, Vector2(0.90721655, 1), 0.0, 0.0, 0, 0, Vector2(1, 0), 0.0, 0.0, 0, 0]
-point_count = 4
+[ext_resource type="Script" uid="uid://dj1eroa80yfqh" path="res://scripts/systems/main/input.gd" id="1_g2els"]
+[ext_resource type="Resource" uid="uid://bsds4te668566" path="res://data/resources/cores/standard.tres" id="2_dqkch"]
+[ext_resource type="Texture2D" uid="uid://0n6hcvu8m78d" path="res://assets/ship.png" id="2_g2els"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_lrbsn"]
-size = Vector2(56, 20)
+size = Vector2(79, 32)
 
 [node name="Player" type="RigidBody2D" unique_id=877456594]
-script = ExtResource("1_qhqgy")
-engine_acceleration = 760.0
-max_speed = 2800.0
-max_reverse_speed = 150.0
-acceleration_curve = SubResource("Curve_qhqgy")
+gravity_scale = 0.0
+script = ExtResource("1_g2els")
+core = ExtResource("2_dqkch")
 
-[node name="Sprite2D" type="Sprite2D" parent="." unique_id=1291916125]
-scale = Vector2(0.484375, 0.21875)
-texture = ExtResource("3_qlg0r")
+[node name="Ship" type="Sprite2D" parent="." unique_id=1058830426]
+texture_filter = 1
+texture = ExtResource("2_g2els")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=44997636]
+position = Vector2(3.5, 0)
 shape = SubResource("RectangleShape2D_lrbsn")
 
 [node name="Camera2D" type="Camera2D" parent="." unique_id=2096680261]
+zoom = Vector2(2, 2)

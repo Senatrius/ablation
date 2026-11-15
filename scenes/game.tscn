@@ -1,10 +1,25 @@
 [gd_scene format=3 uid="uid://dkw67lh51fmdc"]
 
+[ext_resource type="Script" uid="uid://bql3nlpso2ti4" path="res://scripts/systems/main/game.gd" id="1_lnu2h"]
 [ext_resource type="PackedScene" uid="uid://dlix0ngaj4lt4" path="res://scenes/player.tscn" id="1_uwrxv"]
+[ext_resource type="Texture2D" uid="uid://cbj0hplcgcfv6" path="res://assets/bg.jpeg" id="2_yqjtg"]
 
 [node name="Game" type="Node2D" unique_id=1066872153]
+script = ExtResource("1_lnu2h")
 
 [node name="Player" parent="." unique_id=877456594 instance=ExtResource("1_uwrxv")]
 position = Vector2(126, 90)
 mass = 250.0
 gravity_scale = 0.0
+
+[node name="Parallax2D" type="Parallax2D" parent="." unique_id=341620252]
+show_behind_parent = true
+scroll_scale = Vector2(0.5, 0.5)
+repeat_size = Vector2(2048, 2048)
+autoscroll = Vector2(1, 0)
+repeat_times = 2
+
+[node name="Sprite2D" type="Sprite2D" parent="Parallax2D" unique_id=1680164387]
+texture_filter = 1
+texture_repeat = 2
+texture = ExtResource("2_yqjtg")

@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="Weapons" format=3 uid="uid://co3oif7ronovo"]
+
+[ext_resource type="Texture2D" uid="uid://dqo75gjib257i" path="res://assets/scatter-laser-reticle.png" id="1_3kbov"]
+[ext_resource type="Script" uid="uid://dxxtl16c3d071" path="res://data/resources/weapons.gd" id="1_brt71"]
+
+[resource]
+script = ExtResource("1_brt71")
+display_name = "Scatter Laser"
+description = "Rapidly deals low damage. Great for small, weak targets."
+projectile_count = 3
+projectile_damage = 0.5
+max_range = 350.0
+reticle = ExtResource("1_3kbov")
+metadata/_custom_type_script = "uid://dxxtl16c3d071"
