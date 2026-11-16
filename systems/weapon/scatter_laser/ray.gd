@@ -1,12 +1,20 @@
 class_name Ray extends Line2D
 
-var lifetime := 0.1
-var current_age := 0.0
+var lifetime: float = 0.1
+
+var age: float = 0.0
+var anchor: Node2D
+
+func setup(anchor: Node2D, end: Vector2) -> void:
+	anchor = anchor
+	points = PackedVector2Array([anchor.global_position, end])
+
 
 func _process(delta: float) -> void:
-	current_age += delta
-
-	modulate.a = clampf(1.0 - current_age / lifetime, 0.0, 1.0)
-
-	if current_age >= lifetime:
+	age += delta
+	if age >= lifetime:
 		queue_free()
+		return
+
+	set_point_position(0, anchor.global_position)
+	modulate.a = 1.0 - age / lifetime

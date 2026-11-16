@@ -18,11 +18,11 @@ func equip(definition: WeaponDefinition) -> void:
 	if weapon:
 		weapon.queue_free()
 
-	weapon.hit_mask = 0b10
-
-	weapon = definition.scene.instantiate() as Weapon
+	weapon = definition.weapon_scene.instantiate() as Weapon
 	weapon.definition = definition
-	weapon.muzzles.assign(weapons.get_children())
+	weapon.turrets.assign(weapons.get_children())
+
+	weapon.hit_mask = 0b10
 
 	add_child(weapon)
 

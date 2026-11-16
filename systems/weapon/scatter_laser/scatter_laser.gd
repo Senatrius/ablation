@@ -9,13 +9,13 @@ func fire(target: Vector2) -> void:
 		if hit:
 			to = hit.position
 
-		spawn_ray(from, to)
+		spawn_ray(to)
 
-func spawn_ray(from: Vector2, to: Vector2) -> void:
+func spawn_ray(to: Vector2) -> void:
 	var ray := Ray.new()
 	ray.top_level = true
 	ray.width = 1.0
 	ray.default_color = Color(0.5, 0.7, 0.8, 0.5)
-	ray.points = PackedVector2Array([from, to])
+	ray.setup(turret, to)
 
 	add_child(ray)
