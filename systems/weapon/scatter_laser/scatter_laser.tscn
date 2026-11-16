@@ -1,0 +1,15 @@
+[gd_scene format=3 uid="uid://nis7ovyftt4"]
+
+[ext_resource type="Script" uid="uid://swptij4ghfei" path="res://systems/weapon/scatter_laser/scatter_laser.gd" id="1_dbbnm"]
+[ext_resource type="Texture2D" uid="uid://dintnjplpq6xd" path="res://assets/laser.png" id="1_f0cbn"]
+
+[node name="ScatterLaser" type="Node2D" unique_id=821971996]
+script = ExtResource("1_dbbnm")
+
+[node name="Laser" type="Sprite2D" parent="." unique_id=279103675]
+texture_filter = 1
+position = Vector2(1, 0)
+texture = ExtResource("1_f0cbn")
+
+[node name="Marker2D" type="Marker2D" parent="." unique_id=970952145]
+position = Vector2(4, 0)
