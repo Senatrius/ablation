@@ -7,15 +7,17 @@ var definition: WeaponDefinition
 var hit_mask: int = 0
 var cooldown: float = 0.0
 var rng: RandomNumberGenerator = RandomNumberGenerator.new()
+var target: Vector2 = Vector2.ZERO
 
 func _physics_process(delta: float) -> void:
 	cooldown = maxf(cooldown - delta, 0.0)
+	look_at(target)
 
 func cast(from: Vector2, to: Vector2) -> Dictionary:
 	var query: PhysicsRayQueryParameters2D = PhysicsRayQueryParameters2D.create(from, to, hit_mask)
 	return get_world_2d().direct_space_state.intersect_ray(query)
 
-func try_fire(target: Vector2) -> void:
+func try_fire() -> void:
 	if cooldown > 0.0:
 		return
 
@@ -24,7 +26,7 @@ func try_fire(target: Vector2) -> void:
 	fire(target)
 
 @abstract
-func fire(target: Vector2) -> void
+func fire(at: Vector2) -> void
 
 func scatter(center: Vector2) -> Vector2:
 	var radius: float = definition.spread_radius * sqrt(rng.randf())

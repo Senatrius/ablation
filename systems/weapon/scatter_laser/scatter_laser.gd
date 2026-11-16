@@ -1,9 +1,10 @@
 class_name ScatterLaser extends Weapon
 
-func fire(target: Vector2) -> void:
+func fire(at: Vector2) -> void:
 	var from: Vector2 = turret.global_position
-	var to: Vector2 = from + (scatter(target) - from).limit_length(definition.max_range)
+	var to: Vector2 = from + (scatter(at) - from).limit_length(definition.max_range)
 	var hit: Dictionary = cast(from, to)
+
 	if hit:
 		to = hit.position
 
@@ -16,6 +17,3 @@ func spawn_ray(origin: Node2D, to: Vector2) -> void:
 	ray.default_color = Color(0.5, 0.7, 0.8, 0.5)
 	ray.setup(origin, to)
 	add_child(ray)
-
-func _physics_process(_delta: float) -> void:
-	look_at(get_global_mouse_position())

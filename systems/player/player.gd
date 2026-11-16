@@ -29,7 +29,7 @@ func equip(definition: WeaponDefinition) -> void:
 		hardpoint.add_child(weapon)
 		weapons.append(weapon)
 
-		weapon.stagger(weapons.size(), hardpoints.get_child_count())
+		weapon.stagger(weapons.size() - 1, hardpoints.get_child_count())
 
 func aim_target() -> Vector2:
 	var offset: Vector2 = get_global_mouse_position() - global_position
@@ -42,7 +42,8 @@ func _physics_process(_delta: float) -> void:
 
 	if Input.is_action_pressed("primary"):
 		for weapon: Weapon in weapons:
-			weapon.try_fire(aim_target())
+			weapon.target = aim_target()
+			weapon.try_fire()
 
 func _integrate_forces(state: PhysicsDirectBodyState2D) -> void:
 	ShipMovement.integrate_forces(core, is_accelerating, is_decelerating, turn_input, state)
