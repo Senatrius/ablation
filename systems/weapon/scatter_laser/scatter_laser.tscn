@@ -3,8 +3,9 @@
 [ext_resource type="Script" uid="uid://swptij4ghfei" path="res://systems/weapon/scatter_laser/scatter_laser.gd" id="1_dbbnm"]
 [ext_resource type="Texture2D" uid="uid://dintnjplpq6xd" path="res://assets/laser.png" id="1_f0cbn"]
 
-[node name="ScatterLaser" type="Node2D" unique_id=821971996]
+[node name="ScatterLaser" type="Node2D" unique_id=821971996 node_paths=PackedStringArray("turret")]
 script = ExtResource("1_dbbnm")
+turret = NodePath("Marker2D")
 
 [node name="Laser" type="Sprite2D" parent="." unique_id=279103675]
 texture_filter = 1

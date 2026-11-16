@@ -30,16 +30,16 @@ shape = SubResource("RectangleShape2D_lrbsn")
 
 [node name="Camera2D" type="Camera2D" parent="." unique_id=2096680261]
 
-[node name="Weapons" type="Node2D" parent="." unique_id=1963429035]
+[node name="Hardpoints" type="Node2D" parent="." unique_id=1963429035]
 
-[node name="MidL" type="Marker2D" parent="Weapons" unique_id=1340716346]
+[node name="MidL" type="Marker2D" parent="Hardpoints" unique_id=1340716346]
 position = Vector2(20, -13)
 
-[node name="MidR" type="Marker2D" parent="Weapons" unique_id=1226945126]
+[node name="MidR" type="Marker2D" parent="Hardpoints" unique_id=1226945126]
 position = Vector2(20, 13)
 
-[node name="FwdL" type="Marker2D" parent="Weapons" unique_id=1351264385]
+[node name="FwdL" type="Marker2D" parent="Hardpoints" unique_id=1351264385]
 position = Vector2(40, -10)
 
-[node name="FwdR" type="Marker2D" parent="Weapons" unique_id=507506846]
+[node name="FwdR" type="Marker2D" parent="Hardpoints" unique_id=507506846]
 position = Vector2(40, 10)
