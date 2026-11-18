@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="MaterialDefinition" format=3 uid="uid://qt65oenuf3lh"]
+
+[ext_resource type="Script" uid="uid://jpym26b3k13k" path="res://resources/material_definition.gd" id="1_qeb71"]
+
+[resource]
+script = ExtResource("1_qeb71")
+grid_id = 1
+durability = 0.1
+colours = PackedColorArray(0.48570347, 0.48570353, 0.48570347, 1, 0.61150944, 0.6491137, 0.6711085, 1)
+id = &"spacedust"
+display_name = "Spacedust"
+description = "Extremely common, covers basically anything. Course, rough, and gets everywhere. Not worth anything."
+metadata/_custom_type_script = "uid://jpym26b3k13k"

@@ -3,6 +3,7 @@
 [ext_resource type="Script" uid="uid://bql3nlpso2ti4" path="res://systems/game/game.gd" id="1_877rp"]
 [ext_resource type="PackedScene" uid="uid://dlix0ngaj4lt4" path="res://systems/player/player.tscn" id="2_mprjm"]
 [ext_resource type="Texture2D" uid="uid://cbj0hplcgcfv6" path="res://assets/bg.jpeg" id="3_tsptn"]
+[ext_resource type="PackedScene" uid="uid://c56w6p0iuiq1l" path="res://systems/asteroid/asteroid.tscn" id="4_mprjm"]
 
 [node name="Game" type="Node2D" unique_id=1066872153]
 script = ExtResource("1_877rp")
@@ -21,3 +22,6 @@ repeat_times = 2
 texture_filter = 1
 texture_repeat = 2
 texture = ExtResource("3_tsptn")
+
+[node name="Asteroid" parent="." unique_id=636778119 instance=ExtResource("4_mprjm")]
+position = Vector2(495, 283)
