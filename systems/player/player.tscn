@@ -13,6 +13,7 @@ bounce = 0.18
 size = Vector2(79, 32)
 
 [node name="Player" type="RigidBody2D" unique_id=877456594]
+collision_mask = 3
 mass = 150.0
 physics_material_override = SubResource("PhysicsMaterial_877rp")
 gravity_scale = 0.0

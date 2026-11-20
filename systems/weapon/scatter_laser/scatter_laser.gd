@@ -7,6 +7,8 @@ func fire(at: Vector2) -> void:
 
 	if hit:
 		to = hit.position
+		if hit.collider.has_method("take_hit"):
+			hit.collider.take_hit(to, from.direction_to(to), definition.damage)
 
 	spawn_ray(turret, to)
 

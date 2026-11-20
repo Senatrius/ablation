@@ -3,7 +3,12 @@
 [ext_resource type="Script" uid="uid://b6kw3b2a1sqwv" path="res://systems/asteroid/asteroid.gd" id="1_kps4p"]
 [ext_resource type="Resource" uid="uid://bsgvc4a6tcdga" path="res://data/asteroids/small.tres" id="2_xyx6l"]
 
-[node name="Asteroid" type="Node2D" unique_id=636778119]
+[node name="Asteroid" type="RigidBody2D" unique_id=700620523]
 texture_filter = 1
+collision_layer = 2
+collision_mask = 3
+gravity_scale = 0.0
 script = ExtResource("1_kps4p")
 asteroid_def = ExtResource("2_xyx6l")
+collision_recalculation_interval = 0.0
+mass_per_density = 0.0
