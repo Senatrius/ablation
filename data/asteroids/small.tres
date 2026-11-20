@@ -8,13 +8,13 @@
 
 [resource]
 script = ExtResource("2_uv2hp")
-width = 92
-height = 86
+width = 450
+height = 300
 materials = Array[ExtResource("1_c0a1t")]([ExtResource("3_j6vh3"), ExtResource("2_b4kyp"), ExtResource("4_j6vh3")])
-layer_variation = Array[float]([0.0, 0.0, 0.0])
-noise_type = 1
-frequency = 0.05
+layer_boundaries = Array[float]([0.79, 0.32])
+layer_variation = Array[float]([0.05, 0.4])
+frequency = 0.03
 fractal_type = 1
 gain = 0.2
-octaves = 1
+octaves = 2
 metadata/_custom_type_script = "uid://cd5dnoko1i4s8"

@@ -6,7 +6,8 @@
 script = ExtResource("1_8mstb")
 grid_id = 2
 durability = 2.0
-colours = PackedColorArray(0.33660764, 0.3366076, 0.3366076, 1, 0.30066252, 0.2699271, 0.26335627, 1)
+colours = PackedColorArray(0.3276852, 0.34368455, 0.34303072, 1, 0.4376267, 0.40728813, 0.41506383, 1)
+grain_size = 6.0
 resource_yield = 1.0
 density = 5.0
 id = &"rock"

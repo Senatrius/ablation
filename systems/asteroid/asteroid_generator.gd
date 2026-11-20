@@ -12,6 +12,9 @@ func _init(data: AsteroidDefinition) -> void:
 	for material: MaterialDefinition in _materials:
 		_material_lookup[material.grid_id] = material
 
+func get_noise_bytes(noise: FastNoiseLite, size: Vector2i) -> PackedByteArray:
+	return noise.get_image(size.x, size.y, false, false, false).get_data()
+
 func generate_noise(gen_seed: int) -> FastNoiseLite:
 	var noise: FastNoiseLite = FastNoiseLite.new()
 
@@ -24,62 +27,54 @@ func generate_noise(gen_seed: int) -> FastNoiseLite:
 
 	return noise
 
-func generate_asteroid(size: Vector2i, gen_seed: int) -> PackedByteArray:
+func generate_cells(size: Vector2i, gen_seed: int) -> PackedByteArray:
+
 	var cells: PackedByteArray = []
 	cells.resize(size.x * size.y)
 	cells.fill(0)
 
-	var center: Vector2 = Vector2(size.x / 2, size.y / 2)
-	var base_radius: float = minf(size.x, size.y) * 0.42
+	var center: Vector2 = Vector2(size) / 2
+	var radius: Vector2 = Vector2(size) * 0.42
+	var pixels_per_unit: float = minf(radius.x, radius.y)
 
 	var shape_noise: FastNoiseLite = generate_noise(gen_seed)
 	var contour_noise: FastNoiseLite = generate_noise(gen_seed + 1)
 	var depth_noise: FastNoiseLite = generate_noise(gen_seed + 2)
 
+	var shape_data: PackedByteArray = get_noise_bytes(shape_noise, size)
+	var contour_data: PackedByteArray = get_noise_bytes(contour_noise, size)
+	var depth_data: PackedByteArray = get_noise_bytes(depth_noise, size)
+
+	var depth_fields: Array[PackedByteArray] = []
+	for b: int in _data.layer_boundaries.size():
+		depth_noise.offset = Vector3(b * 1000.0, 0.0, 0.0)
+		depth_fields.append(depth_data)
+
+	shape_noise.frequency = _data.frequency / pixels_per_unit
+	contour_noise.frequency = _data.frequency * 4.0 / pixels_per_unit
+	depth_noise.frequency = _data.frequency * 2.0 / pixels_per_unit
+
 	for y: int in range(size.y):
 		for x: int in range(size.x):
-			var local: Vector2 = Vector2(x + 0.5, y + 0.5) - center
+			var local: Vector2 = (Vector2(x + 0.5, y + 0.5) - center) / radius
 			var distance: float = local.length()
 
-			var large_shape: float = shape_noise.get_noise_2d(x, y)
-			var contour_shape: float = contour_noise.get_noise_2d(x, y)
+			var i: int = y * size.x + x
+			var edge: float = 1.0
+			edge += (shape_data[i] / 127.5 - 1.0) * 0.22
+			edge += (contour_data[i] / 127.5 - 1.0) * 0.055
 
-			var edge_radius: float = base_radius
-			edge_radius += large_shape * base_radius * 0.22
-			edge_radius += contour_shape * base_radius * 0.055
-
-			if distance > edge_radius:
+			if distance > edge:
 				continue
 
-			var normalized_radius: float = distance / edge_radius
-
-			var layer_index: int = _materials.size() - 1
-
-			for i: int in range(_data.layer_boundaries.size()):
-				if normalized_radius >= _data.layer_thresholds[i]:
-					layer_index = i
-					break
-
-			cells[y * size.x + x] = _materials[layer_index].grid_id
+			var depth: float = distance / edge  # 0 = center, 1 = surface
+			cells[y * size.x + x] = _pick_layer(depth, depth_noise, x, y) + 1
 
 	return cells
 
-func generate_image() -> ImageTexture:
-	var asteroid_cells: PackedByteArray = generate_asteroid(Vector2i(_data.width, _data.height), randi_range(1, 9999))
-	var image: Image = Image.create(_data.width, _data.height, false, Image.FORMAT_RGBA8)
-
-	for y:int in range(_data.height):
-		for x:int in range(_data.width):
-			var material_idx: int = asteroid_cells[y * _data.width + x]
-			if material_idx == 0:
-				continue
-
-			var material: MaterialDefinition = _material_lookup[material_idx]
-
-			image.set_pixel(
-				x,
-				y,
-				material.colours[0]
-			)
-
-	return ImageTexture.create_from_image(image)
+func _pick_layer(depth: float, depth_noise: FastNoiseLite, x: int, y: int) -> int:
+	for i: int in _data.layer_boundaries.size():
+		var wobble: float = depth_noise.get_noise_2d(x + i * 1000, y) * _data.layer_variation[i]
+		if depth + wobble >= _data.layer_boundaries[i]:
+			return i
+	return _data.materials.size() - 1

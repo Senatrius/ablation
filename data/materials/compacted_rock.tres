@@ -4,8 +4,10 @@
 
 [resource]
 script = ExtResource("1_nnow6")
+grid_id = 4
 durability = 20.0
-colours = PackedColorArray(0.056291588, 0.056291603, 0.056291595, 1, 0.096204735, 0.09620475, 0.096204735, 1)
+colours = PackedColorArray(0.20392157, 0.17254902, 0.16078432, 1, 0.18039216, 0.14901961, 0.13725491, 1)
+grain_size = 4.0
 resource_yield = 120.0
 density = 50.0
 id = &"compacted-rock"

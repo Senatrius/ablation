@@ -8,13 +8,13 @@ point_count = 3
 
 [resource]
 script = ExtResource("1_h8vl7")
-engine_acceleration = 150.0
-max_speed = 230.0
+engine_acceleration = 75.0
+max_speed = 150.0
 max_reverse_speed = 60.0
 acceleration_curve = SubResource("Curve_q27vv")
-max_turn_speed = 120.0
-turn_acceleration = 300.0
-turn_braking = 160.0
+max_turn_speed = 70.0
+turn_acceleration = 30.0
+turn_braking = 200.0
 display_name = "Standard Core"
 description = "A standard issue ship core suited for most everyday tasks."
 metadata/_custom_type_script = "uid://dnaj27pdx4eo4"
