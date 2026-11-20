@@ -7,9 +7,11 @@
 script = ExtResource("1_brt71")
 weapon_scene = ExtResource("2_3ifok")
 shots_per_second = 8.0
-damage = 1.0
+damage = 0.5
 max_range = 350.0
 spread_radius = 6
+damage_radius = 2.0
+damage_falloff = 1.0
 id = &"scatter-laser"
 display_name = "Scatter Laser"
 description = "Rapidly deals low damage. Perfect for small or fast moving targets."

@@ -25,9 +25,24 @@ texture = ExtResource("3_tsptn")
 
 [node name="Asteroid" parent="." unique_id=636778119 instance=ExtResource("4_mprjm")]
 position = Vector2(495, 283)
+mass = 0.1
+collision_recalculation_interval = 0.0
+mass_per_density = 0.0
 
 [node name="Asteroid2" parent="." unique_id=552152055 instance=ExtResource("4_mprjm")]
 position = Vector2(429, 368)
+mass = 0.1
+collision_recalculation_interval = 0.0
+mass_per_density = 0.0
 
 [node name="Asteroid3" parent="." unique_id=1996561616 instance=ExtResource("4_mprjm")]
 position = Vector2(140, 309)
+mass = 0.1
+collision_recalculation_interval = 0.0
+mass_per_density = 0.0
+
+[node name="Asteroid5" parent="." unique_id=700620523 instance=ExtResource("4_mprjm")]
+position = Vector2(384, 84)
+mass = 0.1
+collision_recalculation_interval = 0.0
+mass_per_density = 0.0

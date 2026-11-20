@@ -40,9 +40,11 @@ func _physics_process(_delta: float) -> void:
 	is_decelerating = Input.is_action_pressed("decelerate")
 	turn_input = Input.get_axis("turn_left", "turn_right")
 
-	if Input.is_action_pressed("primary"):
-		for weapon: Weapon in weapons:
-			weapon.target = aim_target()
+	var target: Vector2 = aim_target()
+	var firing: bool = Input.is_action_pressed("primary")
+	for weapon: Weapon in weapons:
+		weapon.target = target
+		if firing:
 			weapon.try_fire()
 
 func _integrate_forces(state: PhysicsDirectBodyState2D) -> void:

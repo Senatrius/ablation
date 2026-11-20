@@ -34,7 +34,7 @@ func generate() -> void:
 
 	var used_seed: int = gen_seed if gen_seed != 0 else randi()
 	size = Vector2i(asteroid_def.width, asteroid_def.height)
-	_origin = Vector2(size) / 2.0
+	_origin = -Vector2(size) / 2.0
 	cells = AsteroidGenerator.new(asteroid_def).generate_cells(size, used_seed)
 	health = PackedFloat32Array()
 	health.resize(cells.size())
@@ -60,12 +60,37 @@ func generate() -> void:
 	_rebuild_collision()
 	queue_redraw()
 
-func take_hit(world_point: Vector2, world_direction: Vector2, damage: float) -> void:
-	var i: int = _find_solid_cell(world_point, world_direction)
-	if i == -1:
+func take_hit(world_point: Vector2, world_direction: Vector2, damage: float, radius: float = 0.0, falloff: float = 0.0) -> void:
+	var center: int = _find_solid_cell(world_point, world_direction)
+	if center == -1:
 		return
 
-	health[i] -= damage
+	var cx: int = center % size.x
+	@warning_ignore("integer_division")
+	var cy: int = center / size.x
+	var reach: int = ceili(radius)
+
+	for dy: int in range(-reach, reach + 1):
+		for dx: int in range(-reach, reach + 1):
+			var distance: float = sqrt(dx * dx + dy * dy)
+			if distance > radius:
+				continue
+
+			var x: int = cx + dx
+			var y: int = cy + dy
+			if x < 0 or y < 0 or x >= size.x or y >= size.y:
+				continue
+
+			var i: int = y * size.x + x
+			if cells[i] == 0:
+				continue
+
+			var edge_factor: float = distance / radius if radius > 0.0 else 0.0
+			_damage_cell(i, damage * (1.0 - edge_factor * falloff))
+
+
+func _damage_cell(i: int, amount: float) -> void:
+	health[i] -= amount
 	if health[i] <= 0.0:
 		_destroy_cell(i)
 	else:
@@ -141,3 +166,13 @@ func _rebuild_collision() -> void:
 		shape.polygon = polygon
 		shape.position = _origin
 		add_child(shape)
+
+func _process(_delta: float) -> void:
+	if _texture_dirty:
+		_texture.update(_image)
+		_texture_dirty = false
+
+func _physics_process(delta: float) -> void:
+	_collision_interval -= delta
+	if _collision_dirty and _collision_interval <= 0.0:
+		_rebuild_collision()

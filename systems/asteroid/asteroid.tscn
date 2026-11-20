@@ -7,8 +7,8 @@
 texture_filter = 1
 collision_layer = 2
 collision_mask = 3
+mass = 507.1
 gravity_scale = 0.0
 script = ExtResource("1_kps4p")
 asteroid_def = ExtResource("2_xyx6l")
-collision_recalculation_interval = 0.0
-mass_per_density = 0.0
+gen_seed = 2

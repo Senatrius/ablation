@@ -41,6 +41,10 @@ func generate_cells(size: Vector2i, gen_seed: int) -> PackedByteArray:
 	var contour_noise: FastNoiseLite = generate_noise(gen_seed + 1)
 	var depth_noise: FastNoiseLite = generate_noise(gen_seed + 2)
 
+	shape_noise.frequency = _data.frequency / pixels_per_unit
+	contour_noise.frequency = _data.frequency * 4.0 / pixels_per_unit
+	depth_noise.frequency = _data.frequency * 2.0 / pixels_per_unit
+
 	var shape_data: PackedByteArray = get_noise_bytes(shape_noise, size)
 	var contour_data: PackedByteArray = get_noise_bytes(contour_noise, size)
 	var depth_data: PackedByteArray = get_noise_bytes(depth_noise, size)
@@ -49,10 +53,6 @@ func generate_cells(size: Vector2i, gen_seed: int) -> PackedByteArray:
 	for b: int in _data.layer_boundaries.size():
 		depth_noise.offset = Vector3(b * 1000.0, 0.0, 0.0)
 		depth_fields.append(depth_data)
-
-	shape_noise.frequency = _data.frequency / pixels_per_unit
-	contour_noise.frequency = _data.frequency * 4.0 / pixels_per_unit
-	depth_noise.frequency = _data.frequency * 2.0 / pixels_per_unit
 
 	for y: int in range(size.y):
 		for x: int in range(size.x):
@@ -68,13 +68,14 @@ func generate_cells(size: Vector2i, gen_seed: int) -> PackedByteArray:
 				continue
 
 			var depth: float = distance / edge  # 0 = center, 1 = surface
-			cells[y * size.x + x] = _pick_layer(depth, depth_noise, x, y) + 1
+			cells[y * size.x + x] = _pick_layer(depth, depth_fields, i) + 1
 
-	return cells
+	return IslandManager.keep_largest(cells, size)
 
-func _pick_layer(depth: float, depth_noise: FastNoiseLite, x: int, y: int) -> int:
-	for i: int in _data.layer_boundaries.size():
-		var wobble: float = depth_noise.get_noise_2d(x + i * 1000, y) * _data.layer_variation[i]
-		if depth + wobble >= _data.layer_boundaries[i]:
-			return i
+func _pick_layer(depth: float, depth_fields: Array[PackedByteArray], i: int) -> int:
+	for b: int in _data.layer_boundaries.size():
+		var wobble: float = (depth_fields[b][i] / 127.5 - 1.0) * _data.layer_variation[b]
+		if depth + wobble >= _data.layer_boundaries[b]:
+			return b
+
 	return _data.materials.size() - 1
