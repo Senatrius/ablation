@@ -1,60 +1,106 @@
 @tool
 class_name Asteroid extends RigidBody2D
 
+signal chunk_broken(material_counts: Dictionary[int, int], world_position: Vector2)
+signal fragment_spawned(fragment: Asteroid)
+
+const HIT_SEARCH_DISTANCE: float = 6.0
+const HIT_SEARCH_STEP: float = 0.5
+const DAMAGE_PAINT_STEPS: int = 12
+
 @export var asteroid_def: AsteroidDefinition
 @export var gen_seed: int = 0
 @export var collision_recalculation_interval: float = 0.1
 @export var mass_per_density: float = 0.01
 
+@export_group("Chunks")
+@export var chunk_size: float = 5.0
+@export_range(0.0, 0.9) var chunk_size_variation: float = 0.45
+@export var min_chunk_cells: int = 8
+@export var chunk_toughness: float = 1.0
+@export_range(0.0, 1.0) var damage_spread: float = 0.1
+
+@export_group("Breaking")
+@export var min_fragment_cells: int = 40
+@export var fragment_kick: float = 12.0
+@export var debris_min_speed: float = 20.0
+@export var debris_max_speed: float = 60.0
+@export var debris_max_spin: float = 4.0
+
+@export_group("Debug")
+@export var debug_show_chunks: bool = false
+
 @export_tool_button("Generate")
 var generate_button: Callable = generate
-
-const HIT_SEARCH_DISTANCE: float = 6.0
-const HIT_SEARCH_STEP: float = 0.5
 
 var cells: PackedByteArray
 var health: PackedFloat32Array
 var size: Vector2i
+var chunks: ChunkMap
 
 var _painter: AsteroidPainter
 var _image: Image
 var _texture: ImageTexture
 var _origin: Vector2
 var _solid: int = 0
+var _used_seed: int = 0
+var _tint_offset: Vector2i = Vector2i.ZERO
+var _painted_step: PackedInt32Array
 var _texture_dirty: bool = false
 var _collision_dirty: bool = false
+var _islands_dirty: bool = false
 var _collision_interval: float = 0.0
+var _is_fragment: bool = false
+var _mass_sum: float = 0.0
+var _mass_moment: Vector2 = Vector2.ZERO
+var _mass_second_moment: float = 0.0
 
 func _ready() -> void:
-	generate()
+	if _is_fragment:
+		_build()
+	else:
+		generate()
 
 func generate() -> void:
 	if asteroid_def == null:
 		return
 
-	var used_seed: int = gen_seed if gen_seed != 0 else randi()
+	_used_seed = gen_seed if gen_seed != 0 else randi()
+	_tint_offset = Vector2i.ZERO
 	size = Vector2i(asteroid_def.width, asteroid_def.height)
-	_origin = -Vector2(size) / 2.0
-	cells = AsteroidGenerator.new(asteroid_def).generate_cells(size, used_seed)
+	cells = AsteroidGenerator.new(asteroid_def).generate_cells(size, _used_seed)
+
 	health = PackedFloat32Array()
 	health.resize(cells.size())
+	for i: int in cells.size():
+		if cells[i] != 0:
+			health[i] = asteroid_def.materials[cells[i] - 1].durability
+
+	chunks = ChunkMap.build(cells, size, asteroid_def.materials, chunk_size, chunk_size_variation,
+		min_chunk_cells, chunk_toughness, _used_seed)
+	_build()
+
+func _build() -> void:
+	_origin = -Vector2(size) / 2.0
 	_solid = 0
 
-	var total_density: float = 0.0
-
+	_mass_sum = 0.0
+	_mass_moment = Vector2.ZERO
+	_mass_second_moment = 0.0
 	for i: int in cells.size():
-		var id: int = cells[i]
-		if id == 0:
+		if cells[i] == 0:
 			continue
-		var material: MaterialDefinition = asteroid_def.materials[id - 1]
-		health[i] = material.durability
-		total_density += material.density
+		_add_cell_mass(i, 1.0)
 		_solid += 1
+	_apply_mass_properties()
 
-	mass = maxf(total_density * mass_per_density, 0.1)
+	_painted_step = PackedInt32Array()
+	_painted_step.resize(chunks.hp.size())
+	_painted_step.fill(-1)
 
-	_painter = AsteroidPainter.new(size, asteroid_def.materials, used_seed)
-	_image = _painter.paint_all(cells, health)
+	_painter = AsteroidPainter.new(size, asteroid_def.materials, _used_seed, _tint_offset)
+	_painter.debug_chunks = debug_show_chunks
+	_image = _painter.paint_all(cells, health, chunks.ids)
 	_texture = ImageTexture.create_from_image(_image)
 
 	_rebuild_collision()
@@ -66,10 +112,10 @@ func take_hit(world_point: Vector2, world_direction: Vector2, damage: float, rad
 		return
 
 	var cx: int = center % size.x
-	@warning_ignore("integer_division")
 	var cy: int = center / size.x
 	var reach: int = ceili(radius)
 
+	var hits: Dictionary[int, float] = {}
 	for dy: int in range(-reach, reach + 1):
 		for dx: int in range(-reach, reach + 1):
 			var distance: float = sqrt(dx * dx + dy * dy)
@@ -86,15 +132,271 @@ func take_hit(world_point: Vector2, world_direction: Vector2, damage: float, rad
 				continue
 
 			var edge_factor: float = distance / radius if radius > 0.0 else 0.0
-			_damage_cell(i, damage * (1.0 - edge_factor * falloff))
+			var chunk: int = chunks.ids[i]
+			hits[chunk] = hits.get(chunk, 0.0) + damage * (1.0 - edge_factor * falloff)
+
+	var broken: PackedInt32Array = PackedInt32Array()
+	for chunk: int in hits:
+		_add_chunk_damage(chunk, hits[chunk], broken)
+		if damage_spread > 0.0:
+			for neighbour: int in chunks.neighbours[chunk]:
+				_add_chunk_damage(neighbour, hits[chunk] * damage_spread, broken)
+
+	for chunk: int in broken:
+		_break_chunk(chunk, world_direction)
+
+func _add_chunk_damage(chunk: int, amount: float, broken: PackedInt32Array) -> void:
+	if not chunks.has_chunk(chunk) or broken.has(chunk):
+		return
+
+	chunks.damage[chunk] += amount
+	var fraction: float = chunks.fraction(chunk)
+	if fraction >= 1.0:
+		broken.append(chunk)
+		return
+
+	var step: int = int(fraction * DAMAGE_PAINT_STEPS)
+	if step != _painted_step[chunk]:
+		_painted_step[chunk] = step
+		for i: int in chunks.members[chunk]:
+			health[i] = asteroid_def.materials[cells[i] - 1].durability * (1.0 - fraction)
+			_repaint(i)
+
+func _break_chunk(chunk: int, world_direction: Vector2) -> void:
+	var indices: PackedInt32Array = chunks.members[chunk]
+	if indices.is_empty():
+		return
+
+	var rect: Rect2i = _bounds_of(indices)
+	var material_counts: Dictionary[int, int] = {}
+	var debris_image: Image = Image.create_empty(rect.size.x, rect.size.y, false, Image.FORMAT_RGBA8)
+
+	for i: int in indices:
+		var x: int = i % size.x
+		var y: int = i / size.x
+		debris_image.set_pixel(x - rect.position.x, y - rect.position.y, _image.get_pixel(x, y))
+		var material: int = cells[i] - 1
+		material_counts[material] = material_counts.get(material, 0) + 1
+
+	var local_center: Vector2 = _origin + Vector2(rect.position) + Vector2(rect.size) / 2.0
+	_spawn_debris(debris_image, local_center, world_direction)
+	chunk_broken.emit(material_counts, to_global(local_center))
+
+	chunks.forget(chunk)
+	_islands_dirty = true
+	_remove_cells(indices)
 
 
-func _damage_cell(i: int, amount: float) -> void:
-	health[i] -= amount
-	if health[i] <= 0.0:
-		_destroy_cell(i)
+func _remove_cells(indices: PackedInt32Array) -> void:
+	for i: int in indices:
+		_add_cell_mass(i, -1.0)
+		cells[i] = 0
+		health[i] = 0.0
+		_solid -= 1
+
+	if _solid <= 0:
+		queue_free()
+		return
+
+	_apply_mass_properties()
+
+	_collision_dirty = true
+	for i: int in indices:
+		_repaint_with_neighbours(i)
+
+func _spawn_debris(image: Image, local_center: Vector2, world_direction: Vector2) -> void:
+	var parent: Node = get_parent()
+	if parent == null or Engine.is_editor_hint():
+		return
+
+	var outward: Vector2 = global_transform.basis_xform(local_center - center_of_mass).normalized()
+	var direction: Vector2 = (outward - world_direction.normalized() * 0.6).normalized()
+	var world_center: Vector2 = to_global(local_center)
+	var velocity: Vector2 = _velocity_at(world_center) \
+		+ direction.rotated(randf_range(-0.4, 0.4)) * randf_range(debris_min_speed, debris_max_speed)
+
+	var debris: ChunkDebris = ChunkDebris.new()
+	debris.setup(image, world_center, global_rotation, velocity, randf_range(-debris_max_spin, debris_max_spin))
+	parent.add_child(debris)
+
+
+func _split_islands() -> void:
+	_islands_dirty = false
+
+	var islands: Array[PackedInt32Array] = []  # chunk ids per island
+	var island_cells: PackedInt32Array = PackedInt32Array()
+	var visited: PackedByteArray = PackedByteArray()
+	visited.resize(chunks.hp.size())
+	visited.fill(0)
+	var queue: PackedInt32Array = PackedInt32Array()
+
+	for start: int in chunks.hp.size():
+		if visited[start] != 0 or not chunks.has_chunk(start):
+			continue
+		visited[start] = 1
+		queue.clear()
+		queue.append(start)
+		var cell_count: int = 0
+		var head: int = 0
+		while head < queue.size():
+			var chunk: int = queue[head]
+			head += 1
+			cell_count += chunks.members[chunk].size()
+			for neighbour: int in chunks.neighbours[chunk]:
+				if visited[neighbour] == 0 and chunks.has_chunk(neighbour):
+					visited[neighbour] = 1
+					queue.append(neighbour)
+		islands.append(queue.duplicate())
+		island_cells.append(cell_count)
+
+	if islands.size() <= 1:
+		return
+
+	var largest: int = 0
+	for island: int in range(1, islands.size()):
+		if island_cells[island] > island_cells[largest]:
+			largest = island
+
+	for island: int in islands.size():
+		if island == largest:
+			continue
+		if island_cells[island] < min_fragment_cells:
+			for chunk: int in islands[island]:
+				_break_chunk(chunk, Vector2.ZERO)
+		else:
+			var indices: PackedInt32Array = PackedInt32Array()
+			for chunk: int in islands[island]:
+				indices.append_array(chunks.members[chunk])
+			_spawn_fragment(indices)
+
+func _spawn_fragment(indices: PackedInt32Array) -> void:
+	var rect: Rect2i = _bounds_of(indices)
+	var fragment: Asteroid = _instantiate_sibling()
+
+	fragment.asteroid_def = asteroid_def
+	fragment.size = rect.size
+	fragment.cells = PackedByteArray()
+	fragment.cells.resize(rect.size.x * rect.size.y)
+	fragment.cells.fill(0)
+	fragment.health = PackedFloat32Array()
+	fragment.health.resize(rect.size.x * rect.size.y)
+	fragment.health.fill(0.0)
+
+	for i: int in indices:
+		var x: int = i % size.x - rect.position.x
+		@warning_ignore("integer_division")
+		var y: int = i / size.x - rect.position.y
+		var j: int = y * rect.size.x + x
+		fragment.cells[j] = cells[i]
+		fragment.health[j] = health[i]
+
+	fragment.chunks = chunks.extract(rect, indices)
+	fragment._used_seed = _used_seed
+	fragment._tint_offset = _tint_offset + rect.position
+	fragment._is_fragment = true
+	_copy_settings_to(fragment)
+
+	var local_center: Vector2 = _origin + Vector2(rect.position) + Vector2(rect.size) / 2.0
+	var world_center: Vector2 = to_global(local_center)
+	var world_transform: Transform2D = Transform2D(global_rotation, world_center)
+	var parent: Node = get_parent()
+	if parent is Node2D:
+		fragment.transform = (parent as Node2D).global_transform.affine_inverse() * world_transform
 	else:
-		_repaint(i)
+		fragment.transform = world_transform
+
+	var away: Vector2 = (world_center - _global_center_of_mass()).normalized()
+	fragment.linear_velocity = _velocity_at(world_center) + away * fragment_kick
+	fragment.angular_velocity = angular_velocity + randf_range(-0.5, 0.5)
+
+	for chunk: int in _chunks_in(indices):
+		chunks.forget(chunk)
+	_remove_cells(indices)
+
+	parent.add_child(fragment)
+	fragment_spawned.emit(fragment)
+
+func _instantiate_sibling() -> Asteroid:
+	# Prefer our own scene so fragments keep its layers, materials, child nodes, etc.
+	if not scene_file_path.is_empty():
+		var scene: PackedScene = load(scene_file_path) as PackedScene
+		if scene != null:
+			var node: Node = scene.instantiate()
+			if node is Asteroid:
+				return node
+			node.free()
+	return Asteroid.new()
+
+func _copy_settings_to(fragment: Asteroid) -> void:
+	fragment.collision_recalculation_interval = collision_recalculation_interval
+	fragment.mass_per_density = mass_per_density
+	fragment.chunk_size = chunk_size
+	fragment.chunk_size_variation = chunk_size_variation
+	fragment.min_chunk_cells = min_chunk_cells
+	fragment.chunk_toughness = chunk_toughness
+	fragment.damage_spread = damage_spread
+	fragment.min_fragment_cells = min_fragment_cells
+	fragment.fragment_kick = fragment_kick
+	fragment.debris_min_speed = debris_min_speed
+	fragment.debris_max_speed = debris_max_speed
+	fragment.debris_max_spin = debris_max_spin
+	fragment.debug_show_chunks = debug_show_chunks
+
+	fragment.collision_layer = collision_layer
+	fragment.collision_mask = collision_mask
+	fragment.gravity_scale = gravity_scale
+	fragment.linear_damp = linear_damp
+	fragment.angular_damp = angular_damp
+	fragment.physics_material_override = physics_material_override
+
+	for connection: Dictionary in chunk_broken.get_connections():
+		fragment.chunk_broken.connect(connection.callable, connection.flags)
+	for connection: Dictionary in fragment_spawned.get_connections():
+		fragment.fragment_spawned.connect(connection.callable, connection.flags)
+
+func _add_cell_mass(i: int, weight: float) -> void:
+	var density: float = asteroid_def.materials[cells[i] - 1].density * weight
+	@warning_ignore("integer_division")
+	var position_local: Vector2 = _origin + Vector2(i % size.x + 0.5, i / size.x + 0.5)
+	_mass_sum += density
+	_mass_moment += position_local * density
+	_mass_second_moment += position_local.length_squared() * density
+
+func _apply_mass_properties() -> void:
+	if _mass_sum <= 0.0:
+		return
+	var centre: Vector2 = _mass_moment / _mass_sum
+	center_of_mass_mode = RigidBody2D.CENTER_OF_MASS_MODE_CUSTOM
+	center_of_mass = centre
+	mass = maxf(_mass_sum * mass_per_density, 0.1)
+	# Parallel axis theorem: inertia about the centre, plus each 1x1 cell's own (m/6).
+	var about_centre: float = _mass_second_moment - _mass_sum * centre.length_squared() + _mass_sum / 6.0
+	inertia = maxf(about_centre * mass_per_density, 0.01)
+
+func _global_center_of_mass() -> Vector2:
+	return to_global(center_of_mass)
+
+func _velocity_at(world_point: Vector2) -> Vector2:
+	var r: Vector2 = world_point - _global_center_of_mass()
+	return linear_velocity + Vector2(-r.y, r.x) * angular_velocity
+
+func _chunks_in(indices: PackedInt32Array) -> PackedInt32Array:
+	var found: Dictionary[int, bool] = {}
+	for i: int in indices:
+		var chunk: int = chunks.ids[i]
+		if chunk != ChunkMap.EMPTY:
+			found[chunk] = true
+	return PackedInt32Array(found.keys())
+
+func _bounds_of(indices: PackedInt32Array) -> Rect2i:
+	var min_cell: Vector2i = size
+	var max_cell: Vector2i = Vector2i(-1, -1)
+	for i: int in indices:
+		@warning_ignore("integer_division")
+		var cell: Vector2i = Vector2i(i % size.x, i / size.x)
+		min_cell = min_cell.min(cell)
+		max_cell = max_cell.max(cell)
+	return Rect2i(min_cell, max_cell - min_cell + Vector2i.ONE)
 
 func _draw() -> void:
 	if _texture:
@@ -102,7 +404,6 @@ func _draw() -> void:
 
 func _find_solid_cell(world_point: Vector2, world_direction: Vector2) -> int:
 	var step: Vector2 = global_transform.basis_xform_inv(world_direction).normalized() * HIT_SEARCH_STEP
-	# Start a pixel early, in case the collision outline sits inside the visible rock.
 	var pos: Vector2 = to_local(world_point) - _origin - step * 2.0
 
 	var travelled: float = 0.0
@@ -117,23 +418,9 @@ func _find_solid_cell(world_point: Vector2, world_direction: Vector2) -> int:
 		travelled += HIT_SEARCH_STEP
 	return -1
 
-func _destroy_cell(i: int) -> void:
-	var material: MaterialDefinition = asteroid_def.materials[cells[i] - 1]
-	mass = maxf(mass - material.density * mass_per_density, 0.1)
-
-	cells[i] = 0
-	health[i] = 0.0
-	_solid -= 1
-
-	if _solid <= 0:
-		queue_free()
-		return
-
-	_collision_dirty = true
+func _repaint_with_neighbours(i: int) -> void:
 	_repaint(i)
-
 	var x: int = i % size.x
-
 	if x > 0:
 		_repaint(i - 1)
 	if x < size.x - 1:
@@ -145,9 +432,8 @@ func _destroy_cell(i: int) -> void:
 
 func _repaint(i: int) -> void:
 	var x: int = i % size.x
-	@warning_ignore("integer_division")
 	var y: int = i / size.x
-	_image.set_pixel(x, y, _painter.colour_at(cells, health, i, x, y))
+	_image.set_pixel(x, y, _painter.colour_at(cells, health, chunks.ids, i, x, y))
 	_texture_dirty = true
 
 func _rebuild_collision() -> void:
@@ -173,6 +459,9 @@ func _process(_delta: float) -> void:
 		_texture_dirty = false
 
 func _physics_process(delta: float) -> void:
+	if _islands_dirty and not Engine.is_editor_hint():
+		_split_islands()
+
 	_collision_interval -= delta
 	if _collision_dirty and _collision_interval <= 0.0:
 		_rebuild_collision()

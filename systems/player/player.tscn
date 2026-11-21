@@ -12,7 +12,7 @@ bounce = 0.18
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_lrbsn"]
 size = Vector2(79, 32)
 
-[node name="Player" type="RigidBody2D" unique_id=877456594]
+[node name="Player" type="RigidBody2D" unique_id=877456594 groups=["player"]]
 collision_mask = 3
 mass = 150.0
 physics_material_override = SubResource("PhysicsMaterial_877rp")

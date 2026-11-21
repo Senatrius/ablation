@@ -49,3 +49,6 @@ func _physics_process(_delta: float) -> void:
 
 func _integrate_forces(state: PhysicsDirectBodyState2D) -> void:
 	ShipMovement.integrate_forces(core, is_accelerating, is_decelerating, turn_input, state)
+
+func collect(contents: Dictionary) -> void:
+	print(contents)
