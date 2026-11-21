@@ -1,12 +1,18 @@
 @tool
 class_name Asteroid extends RigidBody2D
 
+## A chunk broke off. `material_counts` maps material index (into asteroid_def.materials) to cell count.
+## Listeners are copied onto fragments automatically, so connect once and you'll hear every piece.
 signal chunk_broken(material_counts: Dictionary[int, int], world_position: Vector2)
+## A disconnected piece split off as its own asteroid.
 signal fragment_spawned(fragment: Asteroid)
 
 const HIT_SEARCH_DISTANCE: float = 6.0
 const HIT_SEARCH_STEP: float = 0.5
+## How many visual damage stages a chunk goes through. Repainting is skipped between stages.
 const DAMAGE_PAINT_STEPS: int = 12
+## How far collision outlines are shrunk to clean up degenerate geometry. Invisible at this size.
+const COLLISION_CLEANUP_INSET: float = 0.01
 
 @export var asteroid_def: AsteroidDefinition
 @export var gen_seed: int = 0
@@ -14,13 +20,18 @@ const DAMAGE_PAINT_STEPS: int = 12
 @export var mass_per_density: float = 0.01
 
 @export_group("Chunks")
-@export var chunk_size: float = 5.0
+## Average chunk diameter in cells.
+@export var chunk_size: float = 7.0
 @export_range(0.0, 0.9) var chunk_size_variation: float = 0.45
+## Chunks smaller than this get merged into a neighbour.
 @export var min_chunk_cells: int = 8
+## Multiplier on a chunk's summed cell durability. 1.0 = same total work as the old per-cell mining.
 @export var chunk_toughness: float = 1.0
+## Fraction of damage that also leaks into each neighbouring chunk. Builds chain breaks.
 @export_range(0.0, 1.0) var damage_spread: float = 0.1
 
 @export_group("Breaking")
+## Disconnected pieces smaller than this crumble into debris instead of floating away.
 @export var min_fragment_cells: int = 40
 @export var fragment_kick: float = 12.0
 @export var debris_min_speed: float = 20.0
@@ -28,12 +39,14 @@ const DAMAGE_PAINT_STEPS: int = 12
 @export var debris_max_spin: float = 4.0
 
 @export_group("Debug")
+## Tint every chunk a different colour. Press Generate to see it in the editor.
 @export var debug_show_chunks: bool = false
 
 @export_tool_button("Generate")
 var generate_button: Callable = generate
 
 var cells: PackedByteArray
+## Display-only now: the per-cell view of its chunk's damage, used for painting.
 var health: PackedFloat32Array
 var size: Vector2i
 var chunks: ChunkMap
@@ -51,15 +64,19 @@ var _collision_dirty: bool = false
 var _islands_dirty: bool = false
 var _collision_interval: float = 0.0
 var _is_fragment: bool = false
+var _shape_owner: int = -1
+# Running sums over cells (in density units) so mass properties update in O(1) per removed cell.
 var _mass_sum: float = 0.0
 var _mass_moment: Vector2 = Vector2.ZERO
 var _mass_second_moment: float = 0.0
+
 
 func _ready() -> void:
 	if _is_fragment:
 		_build()
 	else:
 		generate()
+
 
 func generate() -> void:
 	if asteroid_def == null:
@@ -80,6 +97,8 @@ func generate() -> void:
 		min_chunk_cells, chunk_toughness, _used_seed)
 	_build()
 
+
+## Everything that follows from `cells`, `health` and `chunks`. Shared by fresh asteroids and fragments.
 func _build() -> void:
 	_origin = -Vector2(size) / 2.0
 	_solid = 0
@@ -106,15 +125,18 @@ func _build() -> void:
 	_rebuild_collision()
 	queue_redraw()
 
+
 func take_hit(world_point: Vector2, world_direction: Vector2, damage: float, radius: float = 0.0, falloff: float = 0.0) -> void:
 	var center: int = _find_solid_cell(world_point, world_direction)
 	if center == -1:
 		return
 
 	var cx: int = center % size.x
+	@warning_ignore("integer_division")
 	var cy: int = center / size.x
 	var reach: int = ceili(radius)
 
+	# Pool the damage per chunk instead of applying it to individual cells.
 	var hits: Dictionary[int, float] = {}
 	for dy: int in range(-reach, reach + 1):
 		for dx: int in range(-reach, reach + 1):
@@ -145,6 +167,7 @@ func take_hit(world_point: Vector2, world_direction: Vector2, damage: float, rad
 	for chunk: int in broken:
 		_break_chunk(chunk, world_direction)
 
+
 func _add_chunk_damage(chunk: int, amount: float, broken: PackedInt32Array) -> void:
 	if not chunks.has_chunk(chunk) or broken.has(chunk):
 		return
@@ -162,6 +185,7 @@ func _add_chunk_damage(chunk: int, amount: float, broken: PackedInt32Array) -> v
 			health[i] = asteroid_def.materials[cells[i] - 1].durability * (1.0 - fraction)
 			_repaint(i)
 
+
 func _break_chunk(chunk: int, world_direction: Vector2) -> void:
 	var indices: PackedInt32Array = chunks.members[chunk]
 	if indices.is_empty():
@@ -173,6 +197,7 @@ func _break_chunk(chunk: int, world_direction: Vector2) -> void:
 
 	for i: int in indices:
 		var x: int = i % size.x
+		@warning_ignore("integer_division")
 		var y: int = i / size.x
 		debris_image.set_pixel(x - rect.position.x, y - rect.position.y, _image.get_pixel(x, y))
 		var material: int = cells[i] - 1
@@ -204,11 +229,13 @@ func _remove_cells(indices: PackedInt32Array) -> void:
 	for i: int in indices:
 		_repaint_with_neighbours(i)
 
+
 func _spawn_debris(image: Image, local_center: Vector2, world_direction: Vector2) -> void:
 	var parent: Node = get_parent()
 	if parent == null or Engine.is_editor_hint():
 		return
 
+	# Fly out of the surface and back toward the shooter, plus whatever the asteroid was doing.
 	var outward: Vector2 = global_transform.basis_xform(local_center - center_of_mass).normalized()
 	var direction: Vector2 = (outward - world_direction.normalized() * 0.6).normalized()
 	var world_center: Vector2 = to_global(local_center)
@@ -223,6 +250,9 @@ func _spawn_debris(image: Image, local_center: Vector2, world_direction: Vector2
 func _split_islands() -> void:
 	_islands_dirty = false
 
+	# Connectivity is checked on the chunk graph, not the cell grid: chunks are always internally
+	# connected and only ever removed whole, so two touching chunks stay touching while both exist.
+	# That's a few hundred nodes instead of tens of thousands of cells.
 	var islands: Array[PackedInt32Array] = []  # chunk ids per island
 	var island_cells: PackedInt32Array = PackedInt32Array()
 	var visited: PackedByteArray = PackedByteArray()
@@ -269,6 +299,7 @@ func _split_islands() -> void:
 				indices.append_array(chunks.members[chunk])
 			_spawn_fragment(indices)
 
+
 func _spawn_fragment(indices: PackedInt32Array) -> void:
 	var rect: Rect2i = _bounds_of(indices)
 	var fragment: Asteroid = _instantiate_sibling()
@@ -296,6 +327,7 @@ func _spawn_fragment(indices: PackedInt32Array) -> void:
 	fragment._is_fragment = true
 	_copy_settings_to(fragment)
 
+	# Place it exactly where those cells were, moving the way that part of the asteroid was moving.
 	var local_center: Vector2 = _origin + Vector2(rect.position) + Vector2(rect.size) / 2.0
 	var world_center: Vector2 = to_global(local_center)
 	var world_transform: Transform2D = Transform2D(global_rotation, world_center)
@@ -316,6 +348,7 @@ func _spawn_fragment(indices: PackedInt32Array) -> void:
 	parent.add_child(fragment)
 	fragment_spawned.emit(fragment)
 
+
 func _instantiate_sibling() -> Asteroid:
 	# Prefer our own scene so fragments keep its layers, materials, child nodes, etc.
 	if not scene_file_path.is_empty():
@@ -326,6 +359,7 @@ func _instantiate_sibling() -> Asteroid:
 				return node
 			node.free()
 	return Asteroid.new()
+
 
 func _copy_settings_to(fragment: Asteroid) -> void:
 	fragment.collision_recalculation_interval = collision_recalculation_interval
@@ -354,6 +388,8 @@ func _copy_settings_to(fragment: Asteroid) -> void:
 	for connection: Dictionary in fragment_spawned.get_connections():
 		fragment.fragment_spawned.connect(connection.callable, connection.flags)
 
+
+## Accumulates one cell's contribution to the mass sums. `weight` is +1 to add, -1 to remove.
 func _add_cell_mass(i: int, weight: float) -> void:
 	var density: float = asteroid_def.materials[cells[i] - 1].density * weight
 	@warning_ignore("integer_division")
@@ -362,6 +398,9 @@ func _add_cell_mass(i: int, weight: float) -> void:
 	_mass_moment += position_local * density
 	_mass_second_moment += position_local.length_squared() * density
 
+
+## Godot's automatic centre of mass goes by where the collision shape nodes sit, not where their
+## area is, so it would land on the grid corner. Mass, centre and inertia come from the cells instead.
 func _apply_mass_properties() -> void:
 	if _mass_sum <= 0.0:
 		return
@@ -373,12 +412,15 @@ func _apply_mass_properties() -> void:
 	var about_centre: float = _mass_second_moment - _mass_sum * centre.length_squared() + _mass_sum / 6.0
 	inertia = maxf(about_centre * mass_per_density, 0.01)
 
+
 func _global_center_of_mass() -> Vector2:
 	return to_global(center_of_mass)
+
 
 func _velocity_at(world_point: Vector2) -> Vector2:
 	var r: Vector2 = world_point - _global_center_of_mass()
 	return linear_velocity + Vector2(-r.y, r.x) * angular_velocity
+
 
 func _chunks_in(indices: PackedInt32Array) -> PackedInt32Array:
 	var found: Dictionary[int, bool] = {}
@@ -387,6 +429,7 @@ func _chunks_in(indices: PackedInt32Array) -> PackedInt32Array:
 		if chunk != ChunkMap.EMPTY:
 			found[chunk] = true
 	return PackedInt32Array(found.keys())
+
 
 func _bounds_of(indices: PackedInt32Array) -> Rect2i:
 	var min_cell: Vector2i = size
@@ -398,12 +441,15 @@ func _bounds_of(indices: PackedInt32Array) -> Rect2i:
 		max_cell = max_cell.max(cell)
 	return Rect2i(min_cell, max_cell - min_cell + Vector2i.ONE)
 
+
 func _draw() -> void:
 	if _texture:
 		draw_texture(_texture, _origin)
 
+
 func _find_solid_cell(world_point: Vector2, world_direction: Vector2) -> int:
 	var step: Vector2 = global_transform.basis_xform_inv(world_direction).normalized() * HIT_SEARCH_STEP
+	# Start a pixel early, in case the collision outline sits inside the visible rock.
 	var pos: Vector2 = to_local(world_point) - _origin - step * 2.0
 
 	var travelled: float = 0.0
@@ -418,6 +464,7 @@ func _find_solid_cell(world_point: Vector2, world_direction: Vector2) -> int:
 		travelled += HIT_SEARCH_STEP
 	return -1
 
+
 func _repaint_with_neighbours(i: int) -> void:
 	_repaint(i)
 	var x: int = i % size.x
@@ -430,33 +477,57 @@ func _repaint_with_neighbours(i: int) -> void:
 	if i < cells.size() - size.x:
 		_repaint(i + size.x)
 
+
 func _repaint(i: int) -> void:
 	var x: int = i % size.x
+	@warning_ignore("integer_division")
 	var y: int = i / size.x
 	_image.set_pixel(x, y, _painter.colour_at(cells, health, chunks.ids, i, x, y))
 	_texture_dirty = true
+
 
 func _rebuild_collision() -> void:
 	_collision_dirty = false
 	_collision_interval = collision_recalculation_interval
 
-	for child: Node in get_children():
-		if child is CollisionPolygon2D:
-			child.queue_free()
+	# Shapes go straight onto the body through a shape owner (what CollisionPolygon2D does internally),
+	# so there's no node per convex piece and old shapes are gone immediately.
+	if _shape_owner == -1:
+		_shape_owner = create_shape_owner(self)
+	shape_owner_set_transform(_shape_owner, Transform2D(0.0, _origin))
+	shape_owner_clear_shapes(_shape_owner)
 
 	var bitmap: BitMap = BitMap.new()
 	bitmap.create_from_image_alpha(_image, 0.5)
-	for polygon: PackedVector2Array in bitmap.opaque_to_polygons(Rect2i(Vector2i.ZERO, size), 1.0):
-		var shape: CollisionPolygon2D = CollisionPolygon2D.new()
-		shape.build_mode = CollisionPolygon2D.BUILD_SOLIDS
-		shape.polygon = polygon
-		shape.position = _origin
-		add_child(shape)
+	for outline: PackedVector2Array in bitmap.opaque_to_polygons(Rect2i(Vector2i.ZERO, size), 1.0):
+		for piece: PackedVector2Array in _convex_pieces(outline):
+			var convex: ConvexPolygonShape2D = ConvexPolygonShape2D.new()
+			convex.points = piece
+			shape_owner_add_shape(_shape_owner, convex)
+
+
+## Splits one traced outline into convex pieces, the same thing CollisionPolygon2D's BUILD_SOLIDS does,
+## but robust against the outlines opaque_to_polygons produces for 1-cell-wide spikes: simplification
+## folds those into zero-width "out and back" edges, which convex decomposition rejects outright
+## (and CollisionPolygon2D then loses ALL of its collision).
+static func _convex_pieces(outline: PackedVector2Array) -> Array[PackedVector2Array]:
+	var pieces: Array[PackedVector2Array] = []
+	var outline_clockwise: bool = Geometry2D.is_polygon_clockwise(outline)
+
+	# Shrinking by a hair makes Clipper drop zero-width spikes and split pinch points apart.
+	for cleaned: PackedVector2Array in Geometry2D.offset_polygon(outline, -COLLISION_CLEANUP_INSET, Geometry2D.JOIN_MITER):
+		if cleaned.size() < 3 or Geometry2D.is_polygon_clockwise(cleaned) != outline_clockwise:
+			continue  # degenerate, or a hole produced by the offset
+		pieces.append_array(Geometry2D.decompose_polygon_in_convex(cleaned))
+
+	return pieces
+
 
 func _process(_delta: float) -> void:
 	if _texture_dirty:
 		_texture.update(_image)
 		_texture_dirty = false
+
 
 func _physics_process(delta: float) -> void:
 	if _islands_dirty and not Engine.is_editor_hint():
