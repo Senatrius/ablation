@@ -8,14 +8,15 @@ const COLLECT_RADIUS: float = 14.0
 const DRAG: float = 1.5
 const LIFETIME: float = 30.0
 
-var _contents: Dictionary[int, int] = {}
+## Material id -> cell count.
+var _contents: Dictionary[StringName, int] = {}
 
 var _velocity: Vector2
 var _spin: float
 var _age: float = 0.0
 var _target: Player
 
-func setup(image: Image, world_position: Vector2, world_rotation: float, velocity: Vector2, spin: float, material_contents: Dictionary[int, int]) -> void:
+func setup(image: Image, world_position: Vector2, world_rotation: float, velocity: Vector2, spin: float, material_contents: Dictionary[StringName, int]) -> void:
 	texture = ImageTexture.create_from_image(image)
 	texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	position = world_position

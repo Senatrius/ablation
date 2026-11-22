@@ -1,7 +1,7 @@
 @tool
 class_name Asteroid extends RigidBody2D
 
-signal chunk_broken(material_counts: Dictionary[int, int], world_position: Vector2)
+signal chunk_broken(material_counts: Dictionary[StringName, int], world_position: Vector2)
 signal fragment_spawned(fragment: Asteroid)
 
 const HIT_SEARCH_DISTANCE: float = 6.0
@@ -38,6 +38,8 @@ var cells: PackedByteArray
 var health: PackedFloat32Array
 var size: Vector2i
 var chunks: ChunkMap
+## Materials by cell id (id - 1). The definition's list plus anything generation passes added.
+var materials: Array[MaterialDefinition] = []
 
 var _painter: AsteroidPainter
 var _image: Image
@@ -73,15 +75,17 @@ func generate() -> void:
 	_used_seed = gen_seed if gen_seed != 0 else randi()
 	_tint_offset = Vector2i.ZERO
 	size = Vector2i(asteroid_def.width, asteroid_def.height)
-	cells = AsteroidGenerator.new(asteroid_def).generate_cells(size, _used_seed)
+	var generator: AsteroidGenerator = AsteroidGenerator.new(asteroid_def)
+	cells = generator.generate_cells(size, _used_seed)
+	materials = generator.materials
 
 	health = PackedFloat32Array()
 	health.resize(cells.size())
 	for i: int in cells.size():
 		if cells[i] != 0:
-			health[i] = asteroid_def.materials[cells[i] - 1].durability
+			health[i] = materials[cells[i] - 1].durability
 
-	chunks = ChunkMap.build(cells, size, asteroid_def.materials, chunk_size, chunk_size_variation,
+	chunks = ChunkMap.build(cells, size, materials, chunk_size, chunk_size_variation,
 		min_chunk_cells, chunk_toughness, _used_seed)
 	_build()
 
@@ -125,7 +129,7 @@ func _build() -> void:
 	_painted_step.resize(chunks.hp.size())
 	_painted_step.fill(-1)
 
-	_painter = AsteroidPainter.new(size, asteroid_def.materials, _used_seed, _tint_offset)
+	_painter = AsteroidPainter.new(size, materials, _used_seed, _tint_offset)
 	_painter.debug_chunks = debug_show_chunks
 	_image = _painter.paint_all(cells, health, chunks.ids)
 	_texture = ImageTexture.create_from_image(_image)
@@ -188,7 +192,7 @@ func _add_chunk_damage(chunk: int, amount: float, broken: PackedInt32Array) -> v
 	if step != _painted_step[chunk]:
 		_painted_step[chunk] = step
 		for i: int in chunks.members[chunk]:
-			health[i] = asteroid_def.materials[cells[i] - 1].durability * (1.0 - fraction)
+			health[i] = materials[cells[i] - 1].durability * (1.0 - fraction)
 			_repaint(i)
 
 
@@ -198,14 +202,14 @@ func _break_chunk(chunk: int, world_direction: Vector2) -> void:
 		return
 
 	var rect: Rect2i = _bounds_of(indices)
-	var material_counts: Dictionary[int, int] = {}
+	var material_counts: Dictionary[StringName, int] = {}
 	var debris_image: Image = Image.create_empty(rect.size.x, rect.size.y, false, Image.FORMAT_RGBA8)
 
 	for i: int in indices:
 		var x: int = i % size.x
 		var y: int = i / size.x
 		debris_image.set_pixel(x - rect.position.x, y - rect.position.y, _image.get_pixel(x, y))
-		var material: int = cells[i] - 1
+		var material: StringName = materials[cells[i] - 1].id
 		material_counts[material] = material_counts.get(material, 0) + 1
 
 	var local_center: Vector2 = _origin + Vector2(rect.position) + Vector2(rect.size) / 2.0
@@ -234,7 +238,7 @@ func _remove_cells(indices: PackedInt32Array) -> void:
 		_repaint_with_neighbours(i)
 
 
-func _spawn_debris(image: Image, local_center: Vector2, world_direction: Vector2, material_count: Dictionary[int, int]) -> void:
+func _spawn_debris(image: Image, local_center: Vector2, world_direction: Vector2, material_count: Dictionary[StringName, int]) -> void:
 	var parent: Node = get_parent()
 	if parent == null or Engine.is_editor_hint():
 		return
@@ -248,7 +252,6 @@ func _spawn_debris(image: Image, local_center: Vector2, world_direction: Vector2
 	var debris: ChunkDebris = ChunkDebris.new()
 	debris.setup(image, world_center, global_rotation, velocity, randf_range(-debris_max_spin, debris_max_spin), material_count)
 	parent.add_child(debris)
-
 
 func _split_islands() -> void:
 	_islands_dirty = false
@@ -305,6 +308,7 @@ func _spawn_fragment(indices: PackedInt32Array) -> void:
 	var fragment: Asteroid = _instantiate_sibling()
 
 	fragment.asteroid_def = asteroid_def
+	fragment.materials = materials
 	fragment.size = rect.size
 	fragment.cells = PackedByteArray()
 	fragment.cells.resize(rect.size.x * rect.size.y)
@@ -385,7 +389,7 @@ func _copy_settings_to(fragment: Asteroid) -> void:
 		fragment.fragment_spawned.connect(connection.callable, connection.flags)
 
 func _add_cell_mass(i: int, weight: float) -> void:
-	var density: float = asteroid_def.materials[cells[i] - 1].density * weight
+	var density: float = materials[cells[i] - 1].density * weight
 	var position_local: Vector2 = _origin + Vector2(i % size.x + 0.5, i / size.x + 0.5)
 	_mass_sum += density
 	_mass_moment += position_local * density

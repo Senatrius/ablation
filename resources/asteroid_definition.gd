@@ -15,6 +15,5 @@ class_name AsteroidDefinition extends ContentDefinition
 @export var gain: float
 @export var octaves: int
 
-@export_group("Options")
-@export var has_volatile_pockets: bool
-@export var has_ores: bool
+@export_group("Generation")
+@export var passes: Array[GenerationPass] = []
