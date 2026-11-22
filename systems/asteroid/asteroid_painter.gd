@@ -65,9 +65,6 @@ func colour_at(cells: PackedByteArray, health: PackedFloat32Array, chunk_ids: Pa
 
 	if _is_edge(cells, i, x, y):
 		colour = colour.darkened(EDGE_TINT)
-
-	if _is_edge(cells, i, x, y):
-		colour = colour.darkened(EDGE_TINT)
 	elif damage > CRACK_START and _is_seam(chunk_ids, i):
 		colour = colour.darkened(smoothstep(CRACK_START, 1.0, damage) * CRACK_TINT)
 

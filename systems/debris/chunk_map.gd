@@ -7,8 +7,11 @@ var ids: PackedInt32Array
 var hp: PackedFloat32Array
 var damage: PackedFloat32Array
 var neighbours: Array[PackedInt32Array] = []
+var pocket_of: PackedInt32Array
+var pockets: Array[PackedInt32Array] = []
+var pocket_fuel: PackedInt32Array
+var pocket_material: PackedInt32Array
 var members: Array[PackedInt32Array] = []
-
 
 static func build(cells: PackedByteArray, grid_size: Vector2i, materials: Array[MaterialDefinition], chunk_size: float, size_variation: float, min_cells: int, toughness: float, rng_seed: int) -> ChunkMap:
 	var regions: PackedInt32Array = _voronoi_regions(cells, grid_size, chunk_size, size_variation, rng_seed)
@@ -61,6 +64,10 @@ func extract(rect: Rect2i, indices: PackedInt32Array) -> ChunkMap:
 	map.hp = hp
 	map.damage = damage.duplicate()
 	map.neighbours = neighbours
+	map.pocket_of = pocket_of
+	map.pockets = pockets
+	map.pocket_fuel = pocket_fuel
+	map.pocket_material = pocket_material
 	map._rebuild_members(hp.size())
 	return map
 
@@ -251,6 +258,55 @@ static func _merge_small(cells: PackedByteArray, grid_size: Vector2i, labels: Pa
 			r = target[r]
 		roots[c] = r
 	return roots
+
+func find_pockets(cells: PackedByteArray, materials: Array[MaterialDefinition]) -> void:
+	var chunk_count: int = hp.size()
+	var volatile_cells: PackedInt32Array = PackedInt32Array()
+	volatile_cells.resize(chunk_count)
+	var gas_id: PackedInt32Array = PackedInt32Array()
+	gas_id.resize(chunk_count)
+
+	for c: int in chunk_count:
+		for i: int in members[c]:
+			if materials[cells[i] - 1].effect == MaterialDefinition.Effects.VOLATILE:
+				volatile_cells[c] += 1
+				gas_id[c] = cells[i]
+
+	pocket_of = PackedInt32Array()
+	pocket_of.resize(chunk_count)
+	pocket_of.fill(EMPTY)
+	pockets.clear()
+	pocket_fuel = PackedInt32Array()
+	pocket_material = PackedInt32Array()
+
+	var queue: PackedInt32Array = PackedInt32Array()
+	for start: int in chunk_count:
+		if not _is_volatile(start, volatile_cells) or pocket_of[start] != EMPTY:
+			continue
+
+		var p: int = pockets.size()
+		pocket_of[start] = p
+		queue.clear()
+		queue.append(start)
+		var fuel: int = 0
+		var head: int = 0
+		while head < queue.size():
+			var c: int = queue[head]
+			head += 1
+			fuel += volatile_cells[c]
+			for neighbour: int in neighbours[c]:
+				if pocket_of[neighbour] == EMPTY and _is_volatile(neighbour, volatile_cells):
+					pocket_of[neighbour] = p
+					queue.append(neighbour)
+
+		pockets.append(queue.duplicate())
+		pocket_fuel.append(fuel)
+		pocket_material.append(gas_id[start])
+
+
+## A chunk counts as volatile when most of its cells are.
+func _is_volatile(c: int, volatile_cells: PackedInt32Array) -> bool:
+	return volatile_cells[c] * 2 > members[c].size()
 
 static func _consider(i: int, n: int, c: int, cells: PackedByteArray, labels: PackedInt32Array, sizes: PackedInt32Array, target: PackedInt32Array, target_score: PackedFloat32Array) -> void:
 	var d: int = labels[n]

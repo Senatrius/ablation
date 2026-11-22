@@ -8,24 +8,24 @@ const COLLECT_RADIUS: float = 14.0
 const DRAG: float = 1.5
 const LIFETIME: float = 30.0
 
-var contents: Dictionary[StringName, int] = {}
+var _contents: Dictionary[int, int] = {}
 
 var _velocity: Vector2
 var _spin: float
 var _age: float = 0.0
-var _target: Node2D
+var _target: Player
 
-func setup(image: Image, world_position: Vector2, world_rotation: float, velocity: Vector2, spin: float) -> void:
+func setup(image: Image, world_position: Vector2, world_rotation: float, velocity: Vector2, spin: float, material_contents: Dictionary[int, int]) -> void:
 	texture = ImageTexture.create_from_image(image)
 	texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	top_level = true
 	position = world_position
 	rotation = world_rotation
 	_velocity = velocity
 	_spin = spin
+	_contents = material_contents
 
 func _ready() -> void:
-	_target = get_tree().get_first_node_in_group("player") as Node2D
+	_target = get_tree().get_first_node_in_group("player") as Player
 
 func _physics_process(delta: float) -> void:
 	_age += delta
@@ -40,8 +40,7 @@ func _physics_process(delta: float) -> void:
 		var distance: float = to_target.length()
 
 		if distance < COLLECT_RADIUS:
-			if _target.has_method("collect"):
-				_target.collect(contents)
+			_target.collect(_contents)
 			queue_free()
 			return
 
