@@ -4,17 +4,31 @@
 [ext_resource type="Resource" uid="uid://dqip2hdtfcsa6" path="res://data/materials/rock.tres" id="2_b4kyp"]
 [ext_resource type="Script" uid="uid://cd5dnoko1i4s8" path="res://resources/asteroid_definition.gd" id="2_uv2hp"]
 [ext_resource type="Resource" uid="uid://qt65oenuf3lh" path="res://data/materials/spacedust.tres" id="3_j6vh3"]
-[ext_resource type="Resource" uid="uid://nogl4rqjmtq4" path="res://data/materials/dense_rock.tres" id="4_j6vh3"]
+[ext_resource type="Script" uid="uid://dj00bpyu882fq" path="res://systems/generators/generation_pass.gd" id="4_j6vh3"]
+[ext_resource type="Resource" uid="uid://cunpusp2iyg8n" path="res://data/materials/volatile_gas.tres" id="5_x4r5b"]
+[ext_resource type="Script" uid="uid://c33em3pwdrqaa" path="res://systems/generators/volatile_pocket_pass.gd" id="6_qep1i"]
+
+[sub_resource type="Resource" id="Resource_2rv30"]
+script = ExtResource("6_qep1i")
+material = ExtResource("5_x4r5b")
+chance = 0.23
+count = Vector2i(0, 1)
+radius = Vector2(2, 4)
+depth_range = Vector2(0.4, 0.75)
+metadata/_custom_type_script = "uid://c33em3pwdrqaa"
 
 [resource]
 script = ExtResource("2_uv2hp")
 width = 45
 height = 60
-materials = Array[ExtResource("1_c0a1t")]([ExtResource("3_j6vh3"), ExtResource("2_b4kyp"), ExtResource("4_j6vh3")])
-layer_boundaries = Array[float]([0.79, 0.32])
-layer_variation = Array[float]([0.05, 0.4])
-frequency = 0.3
+materials = Array[ExtResource("1_c0a1t")]([ExtResource("3_j6vh3"), ExtResource("2_b4kyp")])
+layer_boundaries = Array[float]([0.65])
+layer_variation = Array[float]([0.55])
+frequency = 0.7
 fractal_type = 1
-gain = 0.2
-octaves = 2
+gain = 0.3
+octaves = 3
+passes = Array[ExtResource("4_j6vh3")]([SubResource("Resource_2rv30")])
+id = &"small-asteroid"
+display_name = "Small Asteroid"
 metadata/_custom_type_script = "uid://cd5dnoko1i4s8"

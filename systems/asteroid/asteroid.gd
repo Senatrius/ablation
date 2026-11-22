@@ -24,6 +24,8 @@ const COLLISION_CLEANUP_INSET: float = 0.01
 @export_group("Breaking")
 @export_range(0, 200, 1, "or_greater") var min_fragment_cells: int = 40
 @export var fragment_kick: float = 12.0
+@export var explosion_kick: float = 150.0
+@export var blast_debris_speed: float = 2.5
 @export var debris_min_speed: float = 20.0
 @export var debris_max_speed: float = 60.0
 @export var debris_max_spin: float = 4.0
@@ -38,7 +40,6 @@ var cells: PackedByteArray
 var health: PackedFloat32Array
 var size: Vector2i
 var chunks: ChunkMap
-## Materials by cell id (id - 1). The definition's list plus anything generation passes added.
 var materials: Array[MaterialDefinition] = []
 
 var _painter: AsteroidPainter
@@ -58,7 +59,7 @@ var _shape_owner: int = -1
 var _mass_sum: float = 0.0
 var _mass_moment: Vector2 = Vector2.ZERO
 var _mass_second_moment: float = 0.0
-
+var _pocket_triggered: PackedByteArray
 
 func _ready() -> void:
 	if _is_fragment:
@@ -87,6 +88,7 @@ func generate() -> void:
 
 	chunks = ChunkMap.build(cells, size, materials, chunk_size, chunk_size_variation,
 		min_chunk_cells, chunk_toughness, _used_seed)
+	chunks.find_pockets(cells, materials)
 	_build()
 
 func _validate_settings() -> void:
@@ -134,6 +136,9 @@ func _build() -> void:
 	_image = _painter.paint_all(cells, health, chunks.ids)
 	_texture = ImageTexture.create_from_image(_image)
 
+	_pocket_triggered = PackedByteArray()
+	_pocket_triggered.resize(chunks.pockets.size())
+
 	_rebuild_collision()
 	queue_redraw()
 
@@ -143,10 +148,10 @@ func take_hit(world_point: Vector2, world_direction: Vector2, damage: float, rad
 	if center == -1:
 		return
 
-	var cx: int = center % size.x
-	var cy: int = center / size.x
-	var reach: int = ceili(radius)
+	_damage_area(center % size.x, center / size.x, radius, damage, falloff, world_direction)
 
+func _damage_area(cx: int, cy: int, radius: float, damage: float, falloff: float, world_direction: Vector2, blast_centre: Variant = null) -> void:
+	var reach: int = ceili(radius)
 	var hits: Dictionary[int, float] = {}
 	for dy: int in range(-reach, reach + 1):
 		for dx: int in range(-reach, reach + 1):
@@ -175,8 +180,19 @@ func take_hit(world_point: Vector2, world_direction: Vector2, damage: float, rad
 				_add_chunk_damage(neighbour, hits[chunk] * damage_spread, broken)
 
 	for chunk: int in broken:
-		_break_chunk(chunk, world_direction)
+		if blast_centre == null:
+			_break_chunk(chunk, world_direction)
+		else:
+			var away: Vector2 = _chunk_centre(chunk) - (blast_centre as Vector2)
+			# _spawn_debris pushes debris *against* the hit direction, so point the "hit" at the blast.
+			_break_chunk(chunk, global_transform.basis_xform(-away).normalized(), blast_debris_speed)
 
+func _chunk_centre(chunk: int) -> Vector2:
+	var sum: Vector2 = Vector2.ZERO
+	var members: PackedInt32Array = chunks.members[chunk]
+	for i: int in members:
+		sum += Vector2(i % size.x + 0.5, i / size.x + 0.5)
+	return sum / maxf(members.size(), 1.0)
 
 func _add_chunk_damage(chunk: int, amount: float, broken: PackedInt32Array) -> void:
 	if not chunks.has_chunk(chunk) or broken.has(chunk):
@@ -196,29 +212,69 @@ func _add_chunk_damage(chunk: int, amount: float, broken: PackedInt32Array) -> v
 			_repaint(i)
 
 
-func _break_chunk(chunk: int, world_direction: Vector2) -> void:
+func _break_chunk(chunk: int, world_direction: Vector2, speed_scale: float = 1.0) -> void:
 	var indices: PackedInt32Array = chunks.members[chunk]
 	if indices.is_empty():
 		return
 
+	var pocket: int = chunks.pocket_of[chunk]
 	var rect: Rect2i = _bounds_of(indices)
-	var material_counts: Dictionary[StringName, int] = {}
-	var debris_image: Image = Image.create_empty(rect.size.x, rect.size.y, false, Image.FORMAT_RGBA8)
-
-	for i: int in indices:
-		var x: int = i % size.x
-		var y: int = i / size.x
-		debris_image.set_pixel(x - rect.position.x, y - rect.position.y, _image.get_pixel(x, y))
-		var material: StringName = materials[cells[i] - 1].id
-		material_counts[material] = material_counts.get(material, 0) + 1
-
 	var local_center: Vector2 = _origin + Vector2(rect.position) + Vector2(rect.size) / 2.0
-	_spawn_debris(debris_image, local_center, world_direction, material_counts)
-	chunk_broken.emit(material_counts, to_global(local_center))
+
+	if pocket == ChunkMap.EMPTY:
+		var material_counts: Dictionary[StringName, int] = {}
+		var debris_image: Image = Image.create_empty(rect.size.x, rect.size.y, false, Image.FORMAT_RGBA8)
+		for i: int in indices:
+			var x: int = i % size.x
+			var y: int = i / size.x
+			debris_image.set_pixel(x - rect.position.x, y - rect.position.y, _image.get_pixel(x, y))
+			var material: StringName = materials[cells[i] - 1].id
+			material_counts[material] = material_counts.get(material, 0) + 1
+		_spawn_debris(debris_image, local_center, world_direction, material_counts, speed_scale)
+		chunk_broken.emit(material_counts, to_global(local_center))
 
 	chunks.forget(chunk)
 	_islands_dirty = true
 	_remove_cells(indices)
+
+	if pocket != ChunkMap.EMPTY:
+		_trigger_pocket(pocket, local_center - _origin)
+
+func _trigger_pocket(p: int, fallback_centre: Vector2) -> void:
+	if _pocket_triggered[p] == 1:
+		return
+	_pocket_triggered[p] = 1
+	get_tree().create_timer(randf_range(0.05, 0.15), false).timeout.connect(
+		_detonate_pocket.bind(p, fallback_centre))
+
+
+func _detonate_pocket(p: int, fallback_centre: Vector2) -> void:
+	# Centre of whatever gas is left. It all burns away in the blast.
+	var sum: Vector2 = Vector2.ZERO
+	var count: int = 0
+	for chunk: int in chunks.pockets[p]:
+		if not chunks.has_chunk(chunk):
+			continue
+		for i: int in chunks.members[chunk]:
+			@warning_ignore("integer_division")
+			sum += Vector2(i % size.x + 0.5, i / size.x + 0.5)
+			count += 1
+		_break_chunk(chunk, Vector2.ZERO)
+	var centre: Vector2 = sum / count if count > 0 else fallback_centre
+
+	var material: MaterialDefinition = materials[chunks.pocket_material[p] - 1]
+	var fuel: float = chunks.pocket_fuel[p]
+	var radius: float = material.explosion_base_radius + material.explosion_radius * sqrt(fuel)
+	_damage_area(floori(centre.x), floori(centre.y), radius, material.explosion_damage, material.explosion_falloff, Vector2.ZERO, centre)
+
+	if is_inside_tree() and not is_queued_for_deletion():
+		# Kick as a velocity: a pocket that was most of the rock throws it hard,
+		# a speck of gas in a huge rock barely nudges it.
+		var gas_share: float = fuel / (fuel + _solid)
+		var kick_speed: float = explosion_kick * sqrt(gas_share)
+		var blast_local: Vector2 = _origin + centre
+		var push: Vector2 = global_transform.basis_xform(center_of_mass - blast_local).normalized()
+		apply_impulse(push * kick_speed * mass, global_transform.basis_xform(blast_local))
 
 func _remove_cells(indices: PackedInt32Array) -> void:
 	for i: int in indices:
@@ -238,7 +294,7 @@ func _remove_cells(indices: PackedInt32Array) -> void:
 		_repaint_with_neighbours(i)
 
 
-func _spawn_debris(image: Image, local_center: Vector2, world_direction: Vector2, material_count: Dictionary[StringName, int]) -> void:
+func _spawn_debris(image: Image, local_center: Vector2, world_direction: Vector2, material_count: Dictionary[StringName, int], speed_scale: float = 1.0) -> void:
 	var parent: Node = get_parent()
 	if parent == null or Engine.is_editor_hint():
 		return
@@ -246,8 +302,7 @@ func _spawn_debris(image: Image, local_center: Vector2, world_direction: Vector2
 	var outward: Vector2 = global_transform.basis_xform(local_center - center_of_mass).normalized()
 	var direction: Vector2 = (outward - world_direction.normalized() * 0.6).normalized()
 	var world_center: Vector2 = to_global(local_center)
-	var velocity: Vector2 = _velocity_at(world_center) \
-		+ direction.rotated(randf_range(-0.4, 0.4)) * randf_range(debris_min_speed, debris_max_speed)
+	var velocity: Vector2 = _velocity_at(world_center) + direction.rotated(randf_range(-0.4, 0.4)) * randf_range(debris_min_speed, debris_max_speed) * speed_scale
 
 	var debris: ChunkDebris = ChunkDebris.new()
 	debris.setup(image, world_center, global_rotation, velocity, randf_range(-debris_max_spin, debris_max_spin), material_count)

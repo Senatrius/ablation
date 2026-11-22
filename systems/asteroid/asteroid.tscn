@@ -13,3 +13,5 @@ center_of_mass = Vector2(-0.59522516, -0.24443841)
 inertia = 12303.492
 script = ExtResource("1_kps4p")
 asteroid_def = ExtResource("2_xyx6l")
+mass_per_density = 0.02
+debris_max_speed = 40.0
