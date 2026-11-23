@@ -2,8 +2,17 @@
 
 [ext_resource type="Script" uid="uid://dj1eroa80yfqh" path="res://systems/player/player.gd" id="1_fqfg4"]
 [ext_resource type="Resource" uid="uid://bsds4te668566" path="res://data/cores/standard.tres" id="2_q27vv"]
-[ext_resource type="Texture2D" uid="uid://0n6hcvu8m78d" path="res://assets/ship.png" id="3_e4lrk"]
 [ext_resource type="Resource" uid="uid://co3oif7ronovo" path="res://data/weapons/scatter_laser.tres" id="3_q27vv"]
+[ext_resource type="Texture2D" uid="uid://dbt0lfy2chrxp" path="res://assets/ship/body.png" id="4_b5y0m"]
+[ext_resource type="Texture2D" uid="uid://p66g1wj0utju" path="res://assets/ship/core.png" id="5_htoqa"]
+[ext_resource type="Texture2D" uid="uid://c4gi5x8rmbtut" path="res://assets/ship/rear_engines.png" id="6_cla4a"]
+[ext_resource type="Texture2D" uid="uid://ckutjjdexqmae" path="res://assets/ship/right_engine.png" id="7_xdcb8"]
+[ext_resource type="Texture2D" uid="uid://ca5iooy07aow6" path="res://assets/ship/left_engine.png" id="8_lfquo"]
+[ext_resource type="Texture2D" uid="uid://fp520qv3gb41" path="res://assets/ship/right_wing.png" id="9_vxbwt"]
+[ext_resource type="Texture2D" uid="uid://dfgqewy1paxsn" path="res://assets/ship/left_wing.png" id="10_lgqrg"]
+[ext_resource type="PackedScene" uid="uid://btpkq3l4srno" path="res://systems/engine/small_flare.tscn" id="11_xdcb8"]
+[ext_resource type="PackedScene" uid="uid://dccem7n48q14r" path="res://systems/engine/medium_flare.tscn" id="12_lfquo"]
+[ext_resource type="PackedScene" uid="uid://de3otwypfxyyp" path="res://systems/engine/large_flare.tscn" id="13_vxbwt"]
 
 [sub_resource type="PhysicsMaterial" id="PhysicsMaterial_877rp"]
 friction = 0.51
@@ -12,7 +21,7 @@ bounce = 0.18
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_lrbsn"]
 size = Vector2(79, 32)
 
-[node name="Player" type="RigidBody2D" unique_id=877456594 groups=["player"]]
+[node name="Player" type="RigidBody2D" unique_id=877456594 node_paths=PackedStringArray("main_flares", "left_flare", "right_flare") groups=["player"]]
 collision_mask = 3
 mass = 150.0
 physics_material_override = SubResource("PhysicsMaterial_877rp")
@@ -20,12 +29,62 @@ gravity_scale = 0.0
 script = ExtResource("1_fqfg4")
 core = ExtResource("2_q27vv")
 weapon_def = ExtResource("3_q27vv")
+main_flares = [NodePath("MediumFlareL"), NodePath("MediumFlareR"), NodePath("LargeFlare")]
+left_flare = NodePath("SmallFlareL")
+right_flare = NodePath("SmallFlareR")
 
-[node name="Ship" type="Sprite2D" parent="." unique_id=1058830426]
+[node name="ShipBody" type="Sprite2D" parent="." unique_id=1058830426]
 texture_filter = 1
-texture = ExtResource("3_e4lrk")
+texture = ExtResource("4_b5y0m")
+flip_h = true
+
+[node name="ShipCore" type="Sprite2D" parent="." unique_id=1549268622]
+texture_filter = 1
+position = Vector2(24, 0)
+texture = ExtResource("5_htoqa")
+offset = Vector2(0.5, 0)
+flip_h = true
+
+[node name="RightWing" type="Sprite2D" parent="." unique_id=1611551342]
+texture_filter = 1
+position = Vector2(32, 7)
+texture = ExtResource("9_vxbwt")
+offset = Vector2(0.5, 0)
+flip_h = true
+flip_v = true
+
+[node name="LeftWing" type="Sprite2D" parent="." unique_id=495894105]
+texture_filter = 1
+position = Vector2(32, -7)
+texture = ExtResource("10_lgqrg")
+offset = Vector2(0.5, 0)
+flip_h = true
+flip_v = true
+
+[node name="RearEngines" type="Sprite2D" parent="." unique_id=736642503]
+texture_filter = 1
+position = Vector2(-26, 0)
+texture = ExtResource("6_cla4a")
+flip_h = true
+
+[node name="RightEngine" type="Sprite2D" parent="." unique_id=1843625543]
+texture_filter = 1
+position = Vector2(-19, 14)
+texture = ExtResource("7_xdcb8")
+offset = Vector2(0.5, 0)
+flip_h = true
+flip_v = true
+
+[node name="LeftEngine" type="Sprite2D" parent="." unique_id=604609676]
+texture_filter = 1
+position = Vector2(-19, -14)
+texture = ExtResource("8_lfquo")
+offset = Vector2(0.5, 0)
+flip_h = true
+flip_v = true
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=44997636]
+visible = false
 position = Vector2(3.5, 0)
 shape = SubResource("RectangleShape2D_lrbsn")
 
@@ -34,13 +93,40 @@ shape = SubResource("RectangleShape2D_lrbsn")
 [node name="Hardpoints" type="Node2D" parent="." unique_id=1963429035]
 
 [node name="MidL" type="Marker2D" parent="Hardpoints" unique_id=1340716346]
-position = Vector2(20, -13)
+position = Vector2(21, -9)
 
 [node name="MidR" type="Marker2D" parent="Hardpoints" unique_id=1226945126]
-position = Vector2(20, 13)
+position = Vector2(21, 9)
 
 [node name="FwdL" type="Marker2D" parent="Hardpoints" unique_id=1351264385]
-position = Vector2(40, -10)
+position = Vector2(42, -5)
 
 [node name="FwdR" type="Marker2D" parent="Hardpoints" unique_id=507506846]
-position = Vector2(40, 10)
+position = Vector2(42, 5)
+
+[node name="SmallFlareR" parent="." unique_id=2021955635 instance=ExtResource("11_xdcb8")]
+position = Vector2(-32, 14)
+frame_progress = 0.64141965
+offset = Vector2(2, 0.5)
+flip_h = true
+
+[node name="SmallFlareL" parent="." unique_id=1344266478 instance=ExtResource("11_xdcb8")]
+position = Vector2(-32, -15)
+frame_progress = 0.49822396
+offset = Vector2(2, 0.5)
+flip_h = true
+
+[node name="MediumFlareL" parent="." unique_id=1108743390 instance=ExtResource("12_lfquo")]
+position = Vector2(-35, -8)
+frame_progress = 0.3197608
+flip_h = true
+
+[node name="MediumFlareR" parent="." unique_id=54905877 instance=ExtResource("12_lfquo")]
+position = Vector2(-35, 8)
+frame_progress = 0.3582401
+flip_h = true
+
+[node name="LargeFlare" parent="." unique_id=1102856552 instance=ExtResource("13_vxbwt")]
+position = Vector2(-33, 0)
+frame_progress = 0.37199953
+flip_h = true

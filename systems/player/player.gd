@@ -4,6 +4,9 @@ class_name Player extends RigidBody2D
 
 @export var core: ShipCore
 @export var weapon_def: WeaponDefinition
+@export var main_flares: Array[EngineFlare] = []
+@export var left_flare: EngineFlare
+@export var right_flare: EngineFlare
 
 var weapons: Array[Weapon] = []
 
@@ -36,9 +39,22 @@ func aim_target() -> Vector2:
 	return global_position + offset.limit_length(weapon_def.max_range)
 
 func _physics_process(_delta: float) -> void:
+	var main_mode: EngineFlare.Mode = EngineFlare.Mode.IDLE
+
 	is_accelerating = Input.is_action_pressed("accelerate")
 	is_decelerating = Input.is_action_pressed("decelerate")
 	turn_input = Input.get_axis("turn_left", "turn_right")
+
+	if is_accelerating:
+		main_mode = EngineFlare.Mode.THRUST
+	elif is_decelerating:
+		main_mode = EngineFlare.Mode.BRAKE
+
+	for flare: EngineFlare in main_flares:
+		flare.mode = main_mode
+
+	left_flare.mode = EngineFlare.Mode.THRUST if turn_input > 0.0 else main_mode
+	right_flare.mode = EngineFlare.Mode.THRUST if turn_input < 0.0 else main_mode
 
 	var target: Vector2 = aim_target()
 	var firing: bool = Input.is_action_pressed("primary")
