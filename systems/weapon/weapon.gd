@@ -6,6 +6,7 @@ class_name Weapon extends Node2D
 var definition: WeaponDefinition
 var hit_mask: int = 0
 var cooldown: float = 0.0
+var misfire_chance: float = 0.0
 var rng: RandomNumberGenerator = RandomNumberGenerator.new()
 var target: Vector2 = Vector2.ZERO
 
@@ -22,6 +23,9 @@ func try_fire() -> void:
 		return
 
 	cooldown = 1.0 / definition.shots_per_second
+
+	if misfire_chance > 0.0 and rng.randf() < misfire_chance:
+		return
 
 	fire(target)
 

@@ -1,22 +1,29 @@
 class_name ShipMovement extends RefCounted
 
-static func integrate_forces(core: ShipCore, is_accelerating: bool, is_decelerating: bool, turning: float, state: PhysicsDirectBodyState2D) -> void:
+static func integrate_forces(core: ShipCore, modifiers: ShipModifiers, is_accelerating: bool, is_decelerating: bool, turning: float, state: PhysicsDirectBodyState2D) -> void:
 	if core == null:
 		return
 
 	var forward: Vector2 = Vector2.RIGHT.rotated(state.transform.get_rotation())
 
 	if is_accelerating:
-		thrust(core, state, forward, core.max_speed)
+		thrust(core, state, forward, core.max_speed * modifiers.thrust, modifiers)
 	if is_decelerating:
-		thrust(core, state, -forward, core.max_reverse_speed)
+		thrust(core, state, -forward, core.max_reverse_speed, modifiers)
 
-	var target_spin: float = deg_to_rad(turning * core.max_turn_speed)
-	var turn_rate: float = core.turn_acceleration if turning != 0.0 else core.turn_braking
+	var turn_scale: float = (modifiers.turn_left + modifiers.turn_right) * 0.5
+
+	if turning > 0.0:
+		turn_scale = modifiers.turn_right
+	elif turning < 0.0:
+		turn_scale = modifiers.turn_left
+
+	var target_spin: float = deg_to_rad(turning * core.max_turn_speed * turn_scale)
+	var turn_rate: float = (core.turn_acceleration if turning != 0.0 else core.turn_braking) * turn_scale
 	state.angular_velocity = move_toward(state.angular_velocity, target_spin, deg_to_rad(turn_rate) * state.step)
 
-static func thrust(core: ShipCore, state: PhysicsDirectBodyState2D, direction: Vector2, top_speed: float) -> void:
+static func thrust(core: ShipCore, state: PhysicsDirectBodyState2D, direction: Vector2, top_speed: float, modifiers: ShipModifiers) -> void:
 	var speed_along: float = state.linear_velocity.dot(direction)
 	var t: float = clampf(speed_along / top_speed, 0.0, 1.0)
 	var strength: float = core.acceleration_curve.sample_baked(t) if core.acceleration_curve else 1.0 - t
-	state.linear_velocity += direction * core.engine_acceleration * strength * state.step
+	state.linear_velocity += direction * core.engine_acceleration * modifiers.acceleration * strength * state.step

@@ -4,7 +4,10 @@
 [ext_resource type="Resource" uid="uid://bsds4te668566" path="res://data/cores/standard.tres" id="2_q27vv"]
 [ext_resource type="Resource" uid="uid://co3oif7ronovo" path="res://data/weapons/scatter_laser.tres" id="3_q27vv"]
 [ext_resource type="Texture2D" uid="uid://dbt0lfy2chrxp" path="res://assets/ship/body.png" id="4_b5y0m"]
+[ext_resource type="Texture2D" uid="uid://nx8cu7smjrcu" path="res://assets/ship/right_cargo.png" id="4_vxbwt"]
 [ext_resource type="Texture2D" uid="uid://p66g1wj0utju" path="res://assets/ship/core.png" id="5_htoqa"]
+[ext_resource type="Texture2D" uid="uid://c46icoqpfjoxd" path="res://assets/ship/left_cargo.png" id="5_lgqrg"]
+[ext_resource type="Script" uid="uid://dold38847u4cf" path="res://systems/ship/ship_part.gd" id="5_s35ra"]
 [ext_resource type="Texture2D" uid="uid://c4gi5x8rmbtut" path="res://assets/ship/rear_engines.png" id="6_cla4a"]
 [ext_resource type="Texture2D" uid="uid://ckutjjdexqmae" path="res://assets/ship/right_engine.png" id="7_xdcb8"]
 [ext_resource type="Texture2D" uid="uid://ca5iooy07aow6" path="res://assets/ship/left_engine.png" id="8_lfquo"]
@@ -18,75 +21,134 @@
 friction = 0.51
 bounce = 0.18
 
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_lrbsn"]
-size = Vector2(79, 32)
-
-[node name="Player" type="RigidBody2D" unique_id=877456594 node_paths=PackedStringArray("main_flares", "left_flare", "right_flare") groups=["player"]]
+[node name="Player" type="RigidBody2D" unique_id=877456594 node_paths=PackedStringArray("body", "core", "rear_engines", "left_engine", "right_engine", "left_cargo", "right_cargo", "left_wing", "right_wing", "main_flares", "left_flare", "right_flare") groups=["player"]]
 collision_mask = 3
 mass = 150.0
 physics_material_override = SubResource("PhysicsMaterial_877rp")
 gravity_scale = 0.0
 script = ExtResource("1_fqfg4")
-core = ExtResource("2_q27vv")
+core_data = ExtResource("2_q27vv")
 weapon_def = ExtResource("3_q27vv")
+body = NodePath("ShipBody")
+core = NodePath("ShipCore")
+rear_engines = NodePath("RearEngines")
+left_engine = NodePath("LeftEngine")
+right_engine = NodePath("RightEngine")
+left_cargo = NodePath("LeftCargo")
+right_cargo = NodePath("RightCargo")
+left_wing = NodePath("LeftWing")
+right_wing = NodePath("RightWing")
 main_flares = [NodePath("MediumFlareL"), NodePath("MediumFlareR"), NodePath("LargeFlare")]
 left_flare = NodePath("SmallFlareL")
 right_flare = NodePath("SmallFlareR")
 
-[node name="ShipBody" type="Sprite2D" parent="." unique_id=1058830426]
+[node name="RightCargo" type="Sprite2D" parent="." unique_id=1401203709 node_paths=PackedStringArray("collider")]
+texture_filter = 1
+position = Vector2(5, 11)
+texture = ExtResource("4_vxbwt")
+flip_v = true
+script = ExtResource("5_s35ra")
+collider = NodePath("../RightCargoCollider")
+
+[node name="RightCargoCollider" type="CollisionPolygon2D" parent="." unique_id=1867269357]
+polygon = PackedVector2Array(1, 8, 1, 12, 2, 13, 8, 13, 9, 12, 9, 8)
+
+[node name="LeftCargo" type="Sprite2D" parent="." unique_id=1785889562 node_paths=PackedStringArray("collider")]
+texture_filter = 1
+position = Vector2(4, -11)
+texture = ExtResource("5_lgqrg")
+flip_v = true
+script = ExtResource("5_s35ra")
+collider = NodePath("../LeftCargoCollider")
+
+[node name="LeftCargoCollider" type="CollisionPolygon2D" parent="." unique_id=685427587]
+position = Vector2(4, -11)
+polygon = PackedVector2Array(4, 3, 4, -1, 3, -2, -3, -2, -4, -1, -4, 3)
+
+[node name="ShipBody" type="Sprite2D" parent="." unique_id=1058830426 node_paths=PackedStringArray("collider")]
 texture_filter = 1
 texture = ExtResource("4_b5y0m")
 flip_h = true
+script = ExtResource("5_s35ra")
+collider = NodePath("../ShipBodyCollider")
 
-[node name="ShipCore" type="Sprite2D" parent="." unique_id=1549268622]
+[node name="ShipBodyCollider" type="CollisionPolygon2D" parent="." unique_id=170813953]
+polygon = PackedVector2Array(-24, -12, -13, -12, -12, -11, 1, -11, 2, -10, 2, -8, 12, -8, 14, -6, 17, -6, 18, -5, 18, -4, 12, -4, 12, 4, 18, 4, 18, 5, 17, 6, 14, 6, 12, 8, 2, 8, 2, 10, 1, 11, -12, 11, -13, 12, -24, 12)
+
+[node name="ShipCore" type="Sprite2D" parent="." unique_id=1549268622 node_paths=PackedStringArray("collider")]
 texture_filter = 1
 position = Vector2(24, 0)
 texture = ExtResource("5_htoqa")
 offset = Vector2(0.5, 0)
 flip_h = true
+script = ExtResource("5_s35ra")
+collider = NodePath("../ShipCoreCollider")
 
-[node name="RightWing" type="Sprite2D" parent="." unique_id=1611551342]
+[node name="ShipCoreCollider" type="CollisionPolygon2D" parent="." unique_id=519005759]
+polygon = PackedVector2Array(12, -4, 18, -4, 18, -5, 21, -6, 31, -6, 34, -4, 34, 4, 31, 6, 21, 6, 18, 5, 18, 4, 12, 4)
+
+[node name="RightWing" type="Sprite2D" parent="." unique_id=1611551342 node_paths=PackedStringArray("collider")]
 texture_filter = 1
 position = Vector2(32, 7)
 texture = ExtResource("9_vxbwt")
 offset = Vector2(0.5, 0)
 flip_h = true
 flip_v = true
+script = ExtResource("5_s35ra")
+collider = NodePath("../RightWingCollider")
 
-[node name="LeftWing" type="Sprite2D" parent="." unique_id=495894105]
+[node name="RightWingCollider" type="CollisionPolygon2D" parent="." unique_id=2144181813]
+polygon = PackedVector2Array(18, 6, 32, 6, 33, 5, 35, 5, 35, 4, 46, 4, 46, 5, 44, 6, 41, 7, 36, 7, 34, 8, 31, 9, 27, 10, 23, 11, 20, 11, 19, 10, 18, 8)
+
+[node name="LeftWing" type="Sprite2D" parent="." unique_id=495894105 node_paths=PackedStringArray("collider")]
 texture_filter = 1
 position = Vector2(32, -7)
 texture = ExtResource("10_lgqrg")
 offset = Vector2(0.5, 0)
 flip_h = true
 flip_v = true
+script = ExtResource("5_s35ra")
+collider = NodePath("../LeftWingCollider")
 
-[node name="RearEngines" type="Sprite2D" parent="." unique_id=736642503]
+[node name="LeftWingCollider" type="CollisionPolygon2D" parent="." unique_id=1694352259]
+polygon = PackedVector2Array(18, -6, 18, -8, 19, -10, 20, -11, 23, -11, 27, -10, 31, -9, 34, -8, 36, -7, 41, -7, 44, -6, 46, -5, 46, -4, 35, -4, 35, -5, 33, -5, 32, -6)
+
+[node name="RearEngines" type="Sprite2D" parent="." unique_id=736642503 node_paths=PackedStringArray("collider")]
 texture_filter = 1
 position = Vector2(-26, 0)
 texture = ExtResource("6_cla4a")
 flip_h = true
+script = ExtResource("5_s35ra")
+collider = NodePath("../RearEnginesCollider")
 
-[node name="RightEngine" type="Sprite2D" parent="." unique_id=1843625543]
+[node name="RearEnginesCollider" type="CollisionPolygon2D" parent="." unique_id=1501844571]
+polygon = PackedVector2Array(-24, -10, -30, -10, -30, -6, -28, -6, -28, -3, -28, 3, -28, 6, -30, 6, -30, 10, -24, 10)
+
+[node name="RightEngine" type="Sprite2D" parent="." unique_id=1843625543 node_paths=PackedStringArray("collider")]
 texture_filter = 1
 position = Vector2(-19, 14)
 texture = ExtResource("7_xdcb8")
 offset = Vector2(0.5, 0)
 flip_h = true
 flip_v = true
+script = ExtResource("5_s35ra")
+collider = NodePath("../RightEngineCollider")
 
-[node name="LeftEngine" type="Sprite2D" parent="." unique_id=604609676]
+[node name="RightEngineCollider" type="CollisionPolygon2D" parent="." unique_id=2068674794]
+polygon = PackedVector2Array(-9, 11, -9, 14, -10, 15, -12, 16, -28, 16, -28, 12, -13, 12, -12, 11)
+
+[node name="LeftEngine" type="Sprite2D" parent="." unique_id=604609676 node_paths=PackedStringArray("collider")]
 texture_filter = 1
 position = Vector2(-19, -14)
 texture = ExtResource("8_lfquo")
 offset = Vector2(0.5, 0)
 flip_h = true
 flip_v = true
+script = ExtResource("5_s35ra")
+collider = NodePath("../LeftEngineCollider")
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=44997636]
-visible = false
-position = Vector2(3.5, 0)
-shape = SubResource("RectangleShape2D_lrbsn")
+[node name="LeftEngineCollider" type="CollisionPolygon2D" parent="." unique_id=243760800]
+polygon = PackedVector2Array(-28, -16, -12, -16, -10, -15, -9, -14, -9, -11, -12, -11, -13, -12, -28, -12)
 
 [node name="Camera2D" type="Camera2D" parent="." unique_id=2096680261]
 
@@ -106,27 +168,27 @@ position = Vector2(42, 5)
 
 [node name="SmallFlareR" parent="." unique_id=2021955635 instance=ExtResource("11_xdcb8")]
 position = Vector2(-32, 14)
-frame_progress = 0.64141965
+frame_progress = 0.2369252
 offset = Vector2(2, 0.5)
 flip_h = true
 
 [node name="SmallFlareL" parent="." unique_id=1344266478 instance=ExtResource("11_xdcb8")]
 position = Vector2(-32, -15)
-frame_progress = 0.49822396
+frame_progress = 0.09377832
 offset = Vector2(2, 0.5)
 flip_h = true
 
 [node name="MediumFlareL" parent="." unique_id=1108743390 instance=ExtResource("12_lfquo")]
 position = Vector2(-35, -8)
-frame_progress = 0.3197608
+frame_progress = 0.91532785
 flip_h = true
 
 [node name="MediumFlareR" parent="." unique_id=54905877 instance=ExtResource("12_lfquo")]
 position = Vector2(-35, 8)
-frame_progress = 0.3582401
+frame_progress = 0.95353425
 flip_h = true
 
 [node name="LargeFlare" parent="." unique_id=1102856552 instance=ExtResource("13_vxbwt")]
 position = Vector2(-33, 0)
-frame_progress = 0.37199953
+frame_progress = 0.96728945
 flip_h = true
