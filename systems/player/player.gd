@@ -41,11 +41,15 @@ var is_decelerating: bool = false
 var turn_input: float = 0.0
 
 var parts: Array[ShipPart] = []
-var pending_part_hits: Array[Vector3] = []
+var pending_parts: Array[ShipPart] = []
+var pending_damage: PackedFloat32Array = PackedFloat32Array()
+var part_by_shape: Dictionary[Node, ShipPart] = {}
 
 func _ready() -> void:
 	for part:ShipPart in [body, core, rear_engines, left_engine, right_engine, left_cargo, right_cargo, left_wing, right_wing]:
 		if part != null: parts.append(part)
+		if part.collider != null: part_by_shape[part.collider] = part
+
 		part.health_changed.connect(_on_part_health_changed)
 
 	equip(weapon_def)
@@ -93,7 +97,6 @@ func _spill_excess_cargo() -> void:
 
 		print("Lost %d %s" % [lost, id])
 
-## The part under a world point, or the nearest damageable part if the point misses all of them.
 func _part_at(world_point: Vector2) -> ShipPart:
 	var nearest: ShipPart = null
 	var nearest_distance: float = INF
@@ -170,7 +173,24 @@ func _physics_process(_delta: float) -> void:
 		if firing:
 			weapon.try_fire()
 
+	for n: int in pending_parts.size():
+		pending_parts[n].take_damage(pending_damage[n])
+		pending_parts.clear()
+		pending_damage.clear()
+
 func _integrate_forces(state: PhysicsDirectBodyState2D) -> void:
+	for i: int in state.get_contact_count():
+		var speed_change: float = state.get_contact_impulse(i).length() / mass
+		if speed_change <= safe_impact_speed:
+			continue
+
+		var owner_id: int = shape_find_owner(state.get_contact_local_shape(i))
+		var part: ShipPart = part_by_shape.get(shape_owner_get_owner(owner_id))
+
+		if part != null:
+			pending_parts.append(part)
+			pending_damage.append((speed_change - safe_impact_speed) * damage_per_impact_speed)
+
 	ShipMovement.integrate_forces(core_data, modifiers, is_accelerating, is_decelerating, turn_input, state)
 
 func collect(contents: Dictionary) -> void:
