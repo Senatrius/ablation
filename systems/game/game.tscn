@@ -2,15 +2,15 @@
 
 [ext_resource type="Script" uid="uid://bql3nlpso2ti4" path="res://systems/game/game.gd" id="1_877rp"]
 [ext_resource type="PackedScene" uid="uid://dlix0ngaj4lt4" path="res://systems/player/player.tscn" id="2_mprjm"]
+[ext_resource type="Script" uid="uid://bn0gtgjbsh0rp" path="res://systems/gameplay/asteroid_field.gd" id="3_fcqpf"]
 [ext_resource type="Texture2D" uid="uid://cbj0hplcgcfv6" path="res://assets/bg.jpeg" id="3_tsptn"]
 [ext_resource type="PackedScene" uid="uid://c56w6p0iuiq1l" path="res://systems/asteroid/asteroid.tscn" id="4_mprjm"]
-[ext_resource type="Resource" uid="uid://d2iaunjbus0ld" path="res://data/asteroids/medium.tres" id="5_tsptn"]
+[ext_resource type="Script" uid="uid://djoaj2442va56" path="res://resources/asteroid_spawn.gd" id="5_2ub4j"]
+[ext_resource type="Resource" uid="uid://dflvt2tvvnwcf" path="res://data/asteroids/spawn/small.tres" id="6_xtdty"]
+[ext_resource type="Resource" uid="uid://ld0g4n0q28gj" path="res://data/asteroids/spawn/medium.tres" id="7_fws3a"]
 
 [node name="Game" type="Node2D" unique_id=1066872153]
 script = ExtResource("1_877rp")
-
-[node name="Player" parent="." unique_id=877456594 instance=ExtResource("2_mprjm")]
-position = Vector2(126, 90)
 
 [node name="Parallax2D" type="Parallax2D" parent="." unique_id=341620252]
 show_behind_parent = true
@@ -24,14 +24,10 @@ texture_filter = 1
 texture_repeat = 2
 texture = ExtResource("3_tsptn")
 
-[node name="Asteroid" parent="." unique_id=636778119 instance=ExtResource("4_mprjm")]
-position = Vector2(321, 88)
-mass = 0.1
-center_of_mass = Vector2(-4.4548445, 5.6581445)
-inertia = 0.01
+[node name="AsteroidField" type="Node2D" parent="." unique_id=1942272418]
+script = ExtResource("3_fcqpf")
+asteroid_scene = ExtResource("4_mprjm")
+spawn_entries = Array[ExtResource("5_2ub4j")]([ExtResource("6_xtdty"), ExtResource("7_fws3a")])
 
-[node name="Asteroid2" parent="." unique_id=700620523 instance=ExtResource("4_mprjm")]
-position = Vector2(464, 89)
-asteroid_def = ExtResource("5_tsptn")
-chunk_size = 12.0
-min_chunk_cells = 13
+[node name="Player" parent="." unique_id=877456594 instance=ExtResource("2_mprjm")]
+position = Vector2(126, 90)

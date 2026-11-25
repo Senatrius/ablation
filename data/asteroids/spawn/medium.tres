@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="AsteroidSpawn" format=3 uid="uid://ld0g4n0q28gj"]
+
+[ext_resource type="Script" uid="uid://djoaj2442va56" path="res://resources/asteroid_spawn.gd" id="1_1byyv"]
+[ext_resource type="Resource" uid="uid://d2iaunjbus0ld" path="res://data/asteroids/medium.tres" id="1_c244w"]
+
+[resource]
+script = ExtResource("1_1byyv")
+asteroid_def = ExtResource("1_c244w")
+spawn_weight = 0.3
+metadata/_custom_type_script = "uid://djoaj2442va56"

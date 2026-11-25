@@ -15,7 +15,7 @@ func apply(generator: AsteroidGenerator, cells: PackedByteArray, size: Vector2i,
 	var id: int = generator.material_id(material)
 	var edge_noise: FastNoiseLite = FastNoiseLite.new()
 	edge_noise.seed = rng.randi()
-	edge_noise.frequency = 0.25
+	edge_noise.frequency = 0.7
 
 	var result: PackedByteArray = cells.duplicate()
 	for n: int in rng.randi_range(count.x, count.y):
@@ -36,7 +36,7 @@ func apply(generator: AsteroidGenerator, cells: PackedByteArray, size: Vector2i,
 					continue
 				var i: int = y * size.x + x
 				if result[i] == 0:
-					continue  # pockets replace rock, never fill empty space
+					continue
 				var wobble: float = 1.0 + edge_noise.get_noise_2d(x, y) * 0.3
 				if sqrt(dx * dx + dy * dy) <= r * wobble:
 					result[i] = id
