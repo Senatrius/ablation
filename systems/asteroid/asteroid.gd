@@ -1,4 +1,3 @@
-@tool
 class_name Asteroid extends RigidBody2D
 
 signal chunk_broken(material_counts: Dictionary[StringName, int], world_position: Vector2)
@@ -14,15 +13,9 @@ const COLLISION_CLEANUP_INSET: float = 0.01
 @export_range(0.0, 1.0, 0.01, "or_greater", "suffix:s") var collision_recalculation_interval: float = 0.1
 @export_range(0.0001, 1.0, 0.0001, "or_greater") var mass_per_density: float = 0.01
 
-@export_group("Chunks")
-@export_range(2.0, 32.0, 0.5, "or_greater") var chunk_size: float = 7.0
-@export_range(0.0, 0.9) var chunk_size_variation: float = 0.45
-@export_range(1, 64, 1, "or_greater") var min_chunk_cells: int = 8
-@export_range(0.05, 4.0, 0.05, "or_greater") var chunk_toughness: float = 1.0
-@export_range(0.0, 1.0) var damage_spread: float = 0.1
-
 @export_group("Breaking")
 @export_range(0, 200, 1, "or_greater") var min_fragment_cells: int = 40
+@export_range(0.0, 1.0) var damage_spread: float = 0.1
 @export var fragment_kick: float = 12.0
 @export var explosion_kick: float = 150.0
 @export var blast_debris_speed: float = 2.5
@@ -33,14 +26,12 @@ const COLLISION_CLEANUP_INSET: float = 0.01
 @export_group("Debug")
 @export var debug_show_chunks: bool = false
 
-@export_tool_button("Generate")
-var generate_button: Callable = generate
-
 var cells: PackedByteArray
 var health: PackedFloat32Array
 var size: Vector2i
 var chunks: ChunkMap
 var materials: Array[MaterialDefinition] = []
+var blueprint: AsteroidBlueprint
 
 var _painter: AsteroidPainter
 var _image: Image
@@ -62,8 +53,9 @@ var _mass_second_moment: float = 0.0
 var _pocket_triggered: PackedByteArray
 
 func _ready() -> void:
-	if _is_fragment:
-		_build()
+	if blueprint != null:
+		_apply(blueprint)
+		blueprint = null
 	else:
 		generate()
 
@@ -71,37 +63,12 @@ func _ready() -> void:
 func generate() -> void:
 	if asteroid_def == null:
 		return
-
 	_validate_settings()
-	_used_seed = gen_seed if gen_seed != 0 else randi()
-	_tint_offset = Vector2i.ZERO
-	size = Vector2i(asteroid_def.width, asteroid_def.height)
-	var generator: AsteroidGenerator = AsteroidGenerator.new(asteroid_def)
-	cells = generator.generate_cells(size, _used_seed)
-	materials = generator.materials
-
-	health = PackedFloat32Array()
-	health.resize(cells.size())
-	for i: int in cells.size():
-		if cells[i] != 0:
-			health[i] = materials[cells[i] - 1].durability
-
-	chunks = ChunkMap.build(cells, size, materials, chunk_size, chunk_size_variation,
-		min_chunk_cells, chunk_toughness, _used_seed)
-	chunks.find_pockets(cells, materials)
-	_build()
+	var used_seed: int = gen_seed if gen_seed != 0 else randi()
+	_apply(AsteroidBlueprint.generate(asteroid_def, used_seed, debug_show_chunks))
 
 func _validate_settings() -> void:
 	var problems: PackedStringArray = PackedStringArray()
-	if chunk_size < 2.0:
-		problems.append("chunk_size %s -> 7.0" % chunk_size)
-		chunk_size = 7.0
-	if chunk_toughness <= 0.0:
-		problems.append("chunk_toughness %s -> 1.0" % chunk_toughness)
-		chunk_toughness = 1.0
-	if min_chunk_cells < 1:
-		problems.append("min_chunk_cells %s -> 8" % min_chunk_cells)
-		min_chunk_cells = 8
 	if mass_per_density <= 0.0:
 		problems.append("mass_per_density %s -> 0.01" % mass_per_density)
 		mass_per_density = 0.01
@@ -112,6 +79,36 @@ func _validate_settings() -> void:
 	if not problems.is_empty():
 		push_warning("%s: invalid asteroid settings (check for overrides saved in the scene), using defaults: %s"
 			% [get_path() if is_inside_tree() else name, ", ".join(problems)])
+
+func _apply(bp: AsteroidBlueprint) -> void:
+	asteroid_def = bp.asteroid_def
+	_used_seed = bp.used_seed
+	_tint_offset = bp.tint_offset
+	size = bp.size
+	cells = bp.cells
+	health = bp.health
+	materials = bp.materials
+	chunks = bp.chunks
+	_painter = bp.painter
+	_image = bp.image
+	_origin = -Vector2(size) / 2.0
+
+	_solid = bp.solid
+	_mass_sum = bp.mass_sum
+	_mass_moment = bp.mass_moment
+	_mass_second_moment = bp.mass_second_moment
+	_apply_mass_properties()
+
+	_painted_step = PackedInt32Array()
+	_painted_step.resize(chunks.hp.size())
+	_painted_step.fill(-1)
+	_pocket_triggered = PackedByteArray()
+	_pocket_triggered.resize(chunks.pockets.size())
+
+	_texture = ImageTexture.create_from_image(_image)
+	_apply_collision(bp.collision_pieces)
+	_collision_dirty = false
+	queue_redraw()
 
 func _build() -> void:
 	_origin = -Vector2(size) / 2.0
@@ -256,7 +253,6 @@ func _detonate_pocket(p: int, fallback_centre: Vector2) -> void:
 		if not chunks.has_chunk(chunk):
 			continue
 		for i: int in chunks.members[chunk]:
-			@warning_ignore("integer_division")
 			sum += Vector2(i % size.x + 0.5, i / size.x + 0.5)
 			count += 1
 		_break_chunk(chunk, Vector2.ZERO)
@@ -268,8 +264,6 @@ func _detonate_pocket(p: int, fallback_centre: Vector2) -> void:
 	_damage_area(floori(centre.x), floori(centre.y), radius, material.explosion_damage, material.explosion_falloff, Vector2.ZERO, centre)
 
 	if is_inside_tree() and not is_queued_for_deletion():
-		# Kick as a velocity: a pocket that was most of the rock throws it hard,
-		# a speck of gas in a huge rock barely nudges it.
 		var gas_share: float = fuel / (fuel + _solid)
 		var kick_speed: float = explosion_kick * sqrt(gas_share)
 		var blast_local: Vector2 = _origin + centre
@@ -362,27 +356,20 @@ func _spawn_fragment(indices: PackedInt32Array) -> void:
 	var rect: Rect2i = _bounds_of(indices)
 	var fragment: Asteroid = _instantiate_sibling()
 
-	fragment.asteroid_def = asteroid_def
-	fragment.materials = materials
-	fragment.size = rect.size
-	fragment.cells = PackedByteArray()
-	fragment.cells.resize(rect.size.x * rect.size.y)
-	fragment.cells.fill(0)
-	fragment.health = PackedFloat32Array()
-	fragment.health.resize(rect.size.x * rect.size.y)
-	fragment.health.fill(0.0)
-
+	var fragment_cells: PackedByteArray = PackedByteArray()
+	fragment_cells.resize(rect.size.x * rect.size.y)
+	var fragment_health: PackedFloat32Array = PackedFloat32Array()
+	fragment_health.resize(rect.size.x * rect.size.y)
 	for i: int in indices:
 		var x: int = i % size.x - rect.position.x
 		var y: int = i / size.x - rect.position.y
 		var j: int = y * rect.size.x + x
-		fragment.cells[j] = cells[i]
-		fragment.health[j] = health[i]
+		fragment_cells[j] = cells[i]
+		fragment_health[j] = health[i]
 
-	fragment.chunks = chunks.extract(rect, indices)
-	fragment._used_seed = _used_seed
-	fragment._tint_offset = _tint_offset + rect.position
-	fragment._is_fragment = true
+	fragment.blueprint = AsteroidBlueprint.from_fragment(asteroid_def, _used_seed,
+		_tint_offset + rect.position, rect.size, fragment_cells, fragment_health,
+		materials, chunks.extract(rect, indices), debug_show_chunks)
 	_copy_settings_to(fragment)
 
 	var local_center: Vector2 = _origin + Vector2(rect.position) + Vector2(rect.size) / 2.0
@@ -419,10 +406,6 @@ func _instantiate_sibling() -> Asteroid:
 func _copy_settings_to(fragment: Asteroid) -> void:
 	fragment.collision_recalculation_interval = collision_recalculation_interval
 	fragment.mass_per_density = mass_per_density
-	fragment.chunk_size = chunk_size
-	fragment.chunk_size_variation = chunk_size_variation
-	fragment.min_chunk_cells = min_chunk_cells
-	fragment.chunk_toughness = chunk_toughness
 	fragment.damage_spread = damage_spread
 	fragment.min_fragment_cells = min_fragment_cells
 	fragment.fragment_kick = fragment_kick
@@ -530,20 +513,25 @@ func _repaint(i: int) -> void:
 func _rebuild_collision() -> void:
 	_collision_dirty = false
 	_collision_interval = collision_recalculation_interval
+	_apply_collision(collision_pieces_from(_image, size))
 
+func _apply_collision(pieces: Array[PackedVector2Array]) -> void:
 	if _shape_owner == -1:
 		_shape_owner = create_shape_owner(self)
 	shape_owner_set_transform(_shape_owner, Transform2D(0.0, _origin))
 	shape_owner_clear_shapes(_shape_owner)
+	for piece: PackedVector2Array in pieces:
+		var convex: ConvexPolygonShape2D = ConvexPolygonShape2D.new()
+		convex.points = piece
+		shape_owner_add_shape(_shape_owner, convex)
 
+static func collision_pieces_from(image: Image, grid_size: Vector2i) -> Array[PackedVector2Array]:
 	var bitmap: BitMap = BitMap.new()
-	bitmap.create_from_image_alpha(_image, 0.5)
-	for outline: PackedVector2Array in bitmap.opaque_to_polygons(Rect2i(Vector2i.ZERO, size), 1.0):
-		for piece: PackedVector2Array in _convex_pieces(outline):
-			var convex: ConvexPolygonShape2D = ConvexPolygonShape2D.new()
-			convex.points = piece
-			shape_owner_add_shape(_shape_owner, convex)
-
+	bitmap.create_from_image_alpha(image, 0.5)
+	var pieces: Array[PackedVector2Array] = []
+	for outline: PackedVector2Array in bitmap.opaque_to_polygons(Rect2i(Vector2i.ZERO, grid_size), 1.0):
+		pieces.append_array(_convex_pieces(outline))
+	return pieces
 static func _convex_pieces(outline: PackedVector2Array) -> Array[PackedVector2Array]:
 	var pieces: Array[PackedVector2Array] = []
 	var outline_clockwise: bool = Geometry2D.is_polygon_clockwise(outline)

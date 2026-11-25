@@ -28,6 +28,7 @@ texture = ExtResource("3_tsptn")
 script = ExtResource("3_fcqpf")
 asteroid_scene = ExtResource("4_mprjm")
 spawn_entries = Array[ExtResource("5_2ub4j")]([ExtResource("6_xtdty"), ExtResource("7_fws3a")])
+print_timings = true
 
 [node name="Player" parent="." unique_id=877456594 instance=ExtResource("2_mprjm")]
 position = Vector2(126, 90)

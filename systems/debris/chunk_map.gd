@@ -83,19 +83,17 @@ func fraction(chunk: int) -> float:
 	return damage[chunk] / maxf(hp[chunk], 0.001)
 
 func _rebuild_members(chunk_count: int) -> void:
-	members.clear()
+	var lists: Array[Array] = []
 	for c: int in chunk_count:
-		members.append(PackedInt32Array())
-
+		lists.append([])
 	for i: int in ids.size():
 		var c: int = ids[i]
+		if c != EMPTY:
+			lists[c].append(i)
 
-		if c == EMPTY:
-			continue
-
-		var list: PackedInt32Array = members[c]
-		list.append(i)
-		members[c] = list
+	members.clear()
+	for c: int in chunk_count:
+		members.append(PackedInt32Array(lists[c]))
 
 func _build_neighbours(chunk_count: int) -> void:
 	var sets: Array[Dictionary] = []
@@ -111,10 +109,14 @@ func _build_neighbours(chunk_count: int) -> void:
 				continue
 
 			if x < size.x - 1:
-				_link(sets, c, ids[i + 1])
+				var right: int = ids[i + 1]
+				if right != c and right != EMPTY:
+					_link(sets, c, right)
 
 			if y < size.y - 1:
-				_link(sets, c, ids[i + size.x])
+				var below: int = ids[i + size.x]
+				if below != c and below != EMPTY:
+					_link(sets, c, below)
 
 	neighbours.clear()
 	for c: int in chunk_count:
@@ -126,8 +128,7 @@ static func _link(sets: Array[Dictionary], a: int, b: int) -> void:
 	sets[a][b] = true
 	sets[b][a] = true
 
-static func _voronoi_regions(cells: PackedByteArray, grid_size: Vector2i, chunk_size: float,
-		size_variation: float, rng_seed: int) -> PackedInt32Array:
+static func _voronoi_regions(cells: PackedByteArray, grid_size: Vector2i, chunk_size: float, size_variation: float, rng_seed: int) -> PackedInt32Array:
 	var rng: RandomNumberGenerator = RandomNumberGenerator.new()
 	rng.seed = rng_seed
 
@@ -144,6 +145,9 @@ static func _voronoi_regions(cells: PackedByteArray, grid_size: Vector2i, chunk_
 	warp.seed = rng_seed
 	warp.frequency = 0.5 / chunk_size
 	var warp_amount: float = chunk_size * 0.4
+	var warp_x: PackedByteArray = warp.get_image(grid_size.x, grid_size.y, false, false, false).get_data()
+	warp.offset = Vector3(512.0, -512.0, 0.0)
+	var warp_y: PackedByteArray = warp.get_image(grid_size.x, grid_size.y, false, false, false).get_data()
 
 	var regions: PackedInt32Array = PackedInt32Array()
 	regions.resize(cells.size())
@@ -156,7 +160,7 @@ static func _voronoi_regions(cells: PackedByteArray, grid_size: Vector2i, chunk_
 				continue
 
 			var p: Vector2 = Vector2(x + 0.5, y + 0.5)
-			p += Vector2(warp.get_noise_2d(x, y), warp.get_noise_2d(x + 512.0, y - 512.0)) * warp_amount
+			p += Vector2(warp_x[i] / 127.5 - 1.0, warp_y[i] / 127.5 - 1.0) * warp_amount
 
 			var gx: int = clampi(floori(p.x / chunk_size), 0, grid.x - 1)
 			var gy: int = clampi(floori(p.y / chunk_size), 0, grid.y - 1)
@@ -303,8 +307,6 @@ func find_pockets(cells: PackedByteArray, materials: Array[MaterialDefinition]) 
 		pocket_fuel.append(fuel)
 		pocket_material.append(gas_id[start])
 
-
-## A chunk counts as volatile when most of its cells are.
 func _is_volatile(c: int, volatile_cells: PackedInt32Array) -> bool:
 	return volatile_cells[c] * 2 > members[c].size()
 

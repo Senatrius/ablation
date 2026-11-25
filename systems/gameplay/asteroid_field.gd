@@ -19,6 +19,10 @@ class_name AsteroidField extends Node2D
 @export var drift_speed: float = 10.0
 @export var rotation_speed: float = 0.3
 
+@export_group("Background generation")
+@export var prefetch_count: int = 6
+@export var print_timings: bool = false
+
 const PLACEMENT_ATTEMPTS: int = 20
 
 var _asteroids: Array[Asteroid] = []
@@ -26,6 +30,8 @@ var _player: RigidBody2D
 var _rng: RandomNumberGenerator = RandomNumberGenerator.new()
 var _total_weight: float = 0.0
 var _spawn_timer: float = 0.0
+var _ready_blueprints: Array[AsteroidBlueprint] = []
+var _tasks: Array[int] = []
 
 func _ready() -> void:
 	_rng.randomize()
@@ -40,43 +46,87 @@ func _ready() -> void:
 
 	_prepopulate()
 
+func _new_seed() -> int:
+	var s: int = _rng.randi()
+	return s if s != 0 else 1
+
 func _prepopulate() -> void:
-	if spawn_entries.is_empty():
+	if not is_instance_valid(_player) or spawn_entries.is_empty():
+		return
+	var count: int = live_count - _asteroids.size()
+	if count <= 0:
 		return
 
+	var definitions: Array[AsteroidDefinition] = []
+	var seeds: Array[int] = []
+	for n: int in count:
+		definitions.append(_pick_definition())
+		seeds.append(_new_seed())
+
+	var results: Array[AsteroidBlueprint] = []
+	results.resize(count)
+	var group: int = WorkerThreadPool.add_group_task(func(n: int) -> void:
+		results[n] = AsteroidBlueprint.generate(definitions[n], seeds[n]), count)
+	WorkerThreadPool.wait_for_group_task_completion(group)
+
 	var outer: float = _view_radius() + spawn_field_start + spawn_field_end
-
-	for n: int in live_count - _asteroids.size():
-		var definition: AsteroidDefinition = _pick_definition()
-		var position_found: Vector2 = _find_position(definition, safe_radius, outer)
-
+	for bp: AsteroidBlueprint in results:
+		var position_found: Vector2 = _find_position(bp.size, safe_radius, outer)
 		if position_found.is_finite():
-			_spawn(definition, position_found)
+			_spawn(bp, position_found)
 
 func _physics_process(delta: float) -> void:
 	if not is_instance_valid(_player):
 		return
 
+	_reap_tasks()
 	_despawn_far()
 
-	_spawn_timer -= delta
+	while _ready_blueprints.size() + _tasks.size() < prefetch_count:
+		_request_blueprint()
 
+	_spawn_timer -= delta
 	if _spawn_timer > 0.0 or _asteroids.size() >= live_count:
 		return
 
 	_spawn_timer = spawn_interval
 
-	var definition: AsteroidDefinition = _pick_definition()
+	var bp: AsteroidBlueprint = _ready_blueprints[0]
 	var inner: float = _view_radius() + spawn_field_start
-	var position_found: Vector2 = _find_position(definition, inner, inner + spawn_field_end)
+	var position_found: Vector2 = _find_position(bp.size, inner, inner + spawn_field_end)
 
 	if position_found.is_finite():
-		_spawn(definition, position_found)
+		_ready_blueprints.pop_front()
+		_spawn(bp, position_found)
 
-func _spawn(definition: AsteroidDefinition, world_position: Vector2) -> void:
+func _exit_tree() -> void:
+	for task: int in _tasks:
+		WorkerThreadPool.wait_for_task_completion(task)
+	_tasks.clear()
+
+func _request_blueprint() -> void:
+	var definition: AsteroidDefinition = _pick_definition()
+	_tasks.append(WorkerThreadPool.add_task(_build_in_background.bind(definition, _new_seed())))
+
+func _build_in_background(definition: AsteroidDefinition, gen_seed: int) -> void:
+	var bp: AsteroidBlueprint = AsteroidBlueprint.generate(definition, gen_seed)
+	_receive_blueprint.call_deferred(bp)
+
+func _receive_blueprint(bp: AsteroidBlueprint) -> void:
+	_ready_blueprints.append(bp)
+	if print_timings:
+		print("%s: %.1f ms %s" % [bp.asteroid_def.id, bp.total_ms(), bp.timings])
+
+func _reap_tasks() -> void:
+	for n: int in range(_tasks.size() - 1, -1, -1):
+		if WorkerThreadPool.is_task_completed(_tasks[n]):
+			WorkerThreadPool.wait_for_task_completion(_tasks[n])
+			_tasks.remove_at(n)
+
+func _spawn(bp: AsteroidBlueprint, world_position: Vector2) -> void:
 	var asteroid: Asteroid = asteroid_scene.instantiate() as Asteroid
-	asteroid.asteroid_def = definition
-	asteroid.gen_seed = 0
+	asteroid.blueprint = bp
+	asteroid.asteroid_def = bp.asteroid_def
 	asteroid.position = to_local(world_position)
 	asteroid.rotation = _rng.randf() * TAU
 	asteroid.linear_velocity = Vector2.from_angle(_rng.randf() * TAU) * _rng.randf_range(0.0, drift_speed)
@@ -85,8 +135,8 @@ func _spawn(definition: AsteroidDefinition, world_position: Vector2) -> void:
 
 	_track(asteroid)
 
-func _find_position(definition: AsteroidDefinition, min_distance: float, max_distance: float) -> Vector2:
-	var radius: float = maxf(definition.width, definition.height) * 0.5
+func _find_position(size: Vector2i, min_distance: float, max_distance: float) -> Vector2:
+	var radius: float = maxf(size.x, size.y) * 0.5
 	var velocity: Vector2 = _player.linear_velocity
 
 	for attempt: int in PLACEMENT_ATTEMPTS:
