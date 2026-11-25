@@ -41,11 +41,12 @@ func _physics_process(delta: float) -> void:
 		var distance: float = to_target.length()
 
 		if distance < COLLECT_RADIUS:
-			_target.collect(_contents)
-			queue_free()
-			return
+			_contents = _target.collect(_contents)
+			if _contents.is_empty():
+				queue_free()
+				return
 
-		if distance < MAGNET_RANGE:
+		if distance < MAGNET_RANGE and _target.cargo_free() > 0:
 			homing = true
 			_velocity = _velocity.move_toward(to_target / distance * MAGNET_SPEED, MAGNET_ACCEL * delta)
 

@@ -63,6 +63,7 @@ func _on_part_health_changed(part: ShipPart) -> void:
 
 func _recalculate_damage_effects() -> void:
 	modifiers.thrust = rear_engines.effectiveness(engine_minimum)
+	modifiers.acceleration = modifiers.thrust
 	modifiers.turn_right = left_engine.effectiveness(engine_minimum)
 	modifiers.turn_left = right_engine.effectiveness(engine_minimum)
 
@@ -197,5 +198,19 @@ func _integrate_forces(state: PhysicsDirectBodyState2D) -> void:
 
 	ShipMovement.integrate_forces(core_data, modifiers, is_accelerating, is_decelerating, turn_input, state)
 
-func collect(contents: Dictionary) -> void:
-	print(contents)
+func cargo_free() -> int:
+	return maxi(cargo_limit - cargo_used, 0)
+
+func collect(contents: Dictionary[StringName, int]) -> Dictionary[StringName, int]:
+	var leftover: Dictionary[StringName, int] = {}
+
+	for id: StringName in contents:
+		var take: int = mini(contents[id], cargo_free())
+		if take > 0:
+			cargo[id] = cargo.get(id, 0) + take
+			cargo_used += take
+
+		if contents[id] > take:
+			leftover[id] = contents[id] - take
+
+	return leftover

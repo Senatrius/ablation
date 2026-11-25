@@ -32,6 +32,7 @@ script = ExtResource("1_fqfg4")
 hardpoints = [NodePath("RightWing/MidR"), NodePath("RightWing/FwdR"), NodePath("LeftWing/MidL"), NodePath("LeftWing/FwdL")]
 core_data = ExtResource("2_q27vv")
 weapon_def = ExtResource("3_q27vv")
+cargo_capacity = 3000
 body = NodePath("ShipBody")
 core = NodePath("ShipCore")
 rear_engines = NodePath("RearEngines")
