@@ -21,12 +21,15 @@
 friction = 0.51
 bounce = 0.18
 
-[node name="Player" type="RigidBody2D" unique_id=877456594 node_paths=PackedStringArray("body", "core", "rear_engines", "left_engine", "right_engine", "left_cargo", "right_cargo", "left_wing", "right_wing", "main_flares", "left_flare", "right_flare") groups=["player"]]
+[node name="Player" type="RigidBody2D" unique_id=877456594 node_paths=PackedStringArray("hardpoints", "body", "core", "rear_engines", "left_engine", "right_engine", "left_cargo", "right_cargo", "left_wing", "right_wing", "main_flares", "left_flare", "right_flare") groups=["player"]]
 collision_mask = 3
 mass = 150.0
 physics_material_override = SubResource("PhysicsMaterial_877rp")
 gravity_scale = 0.0
+contact_monitor = true
+max_contacts_reported = 9
 script = ExtResource("1_fqfg4")
+hardpoints = [NodePath("RightWing/MidR"), NodePath("RightWing/FwdR"), NodePath("LeftWing/MidL"), NodePath("LeftWing/FwdL")]
 core_data = ExtResource("2_q27vv")
 weapon_def = ExtResource("3_q27vv")
 body = NodePath("ShipBody")
@@ -41,6 +44,7 @@ right_wing = NodePath("RightWing")
 main_flares = [NodePath("MediumFlareL"), NodePath("MediumFlareR"), NodePath("LargeFlare")]
 left_flare = NodePath("SmallFlareL")
 right_flare = NodePath("SmallFlareR")
+safe_impact_speed = 8.0
 
 [node name="RightCargo" type="Sprite2D" parent="." unique_id=1401203709 node_paths=PackedStringArray("collider")]
 texture_filter = 1
@@ -71,6 +75,8 @@ texture = ExtResource("4_b5y0m")
 flip_h = true
 script = ExtResource("5_s35ra")
 collider = NodePath("../ShipBodyCollider")
+max_health = 999.0
+invulnerable = true
 
 [node name="ShipBodyCollider" type="CollisionPolygon2D" parent="." unique_id=170813953]
 polygon = PackedVector2Array(-24, -12, -13, -12, -12, -11, 1, -11, 2, -10, 2, -8, 12, -8, 14, -6, 17, -6, 18, -5, 18, -4, 12, -4, 12, 4, 18, 4, 18, 5, 17, 6, 14, 6, 12, 8, 2, 8, 2, 10, 1, 11, -12, 11, -13, 12, -24, 12)
@@ -97,6 +103,12 @@ flip_v = true
 script = ExtResource("5_s35ra")
 collider = NodePath("../RightWingCollider")
 
+[node name="MidR" type="Marker2D" parent="RightWing" unique_id=1226945126]
+position = Vector2(-11, 2)
+
+[node name="FwdR" type="Marker2D" parent="RightWing" unique_id=507506846]
+position = Vector2(10, -2)
+
 [node name="RightWingCollider" type="CollisionPolygon2D" parent="." unique_id=2144181813]
 polygon = PackedVector2Array(18, 6, 32, 6, 33, 5, 35, 5, 35, 4, 46, 4, 46, 5, 44, 6, 41, 7, 36, 7, 34, 8, 31, 9, 27, 10, 23, 11, 20, 11, 19, 10, 18, 8)
 
@@ -109,6 +121,12 @@ flip_h = true
 flip_v = true
 script = ExtResource("5_s35ra")
 collider = NodePath("../LeftWingCollider")
+
+[node name="MidL" type="Marker2D" parent="LeftWing" unique_id=1340716346]
+position = Vector2(-11, -2)
+
+[node name="FwdL" type="Marker2D" parent="LeftWing" unique_id=1351264385]
+position = Vector2(10, 2)
 
 [node name="LeftWingCollider" type="CollisionPolygon2D" parent="." unique_id=1694352259]
 polygon = PackedVector2Array(18, -6, 18, -8, 19, -10, 20, -11, 23, -11, 27, -10, 31, -9, 34, -8, 36, -7, 41, -7, 44, -6, 46, -5, 46, -4, 35, -4, 35, -5, 33, -5, 32, -6)
@@ -151,20 +169,6 @@ collider = NodePath("../LeftEngineCollider")
 polygon = PackedVector2Array(-28, -16, -12, -16, -10, -15, -9, -14, -9, -11, -12, -11, -13, -12, -28, -12)
 
 [node name="Camera2D" type="Camera2D" parent="." unique_id=2096680261]
-
-[node name="Hardpoints" type="Node2D" parent="." unique_id=1963429035]
-
-[node name="MidL" type="Marker2D" parent="Hardpoints" unique_id=1340716346]
-position = Vector2(21, -9)
-
-[node name="MidR" type="Marker2D" parent="Hardpoints" unique_id=1226945126]
-position = Vector2(21, 9)
-
-[node name="FwdL" type="Marker2D" parent="Hardpoints" unique_id=1351264385]
-position = Vector2(42, -5)
-
-[node name="FwdR" type="Marker2D" parent="Hardpoints" unique_id=507506846]
-position = Vector2(42, 5)
 
 [node name="SmallFlareR" parent="." unique_id=2021955635 instance=ExtResource("11_xdcb8")]
 position = Vector2(-32, 14)

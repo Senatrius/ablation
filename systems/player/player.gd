@@ -2,7 +2,7 @@ class_name Player extends RigidBody2D
 
 signal destroyed()
 
-@onready var hardpoints: Node2D = $Hardpoints
+@export var hardpoints: Array[Marker2D] = []
 @export var core_data: ShipCore
 @export var weapon_def: WeaponDefinition
 @export var cargo_capacity: int = 300
@@ -130,10 +130,11 @@ func _part_of(node: Node) -> ShipPart:
 func equip(definition: WeaponDefinition) -> void:
 	for old: Weapon in weapons:
 		old.queue_free()
+
 	weapons.clear()
 
 	weapon_def = definition
-	for hardpoint: Marker2D in hardpoints.get_children():
+	for hardpoint: Marker2D in hardpoints:
 		var weapon: Weapon = definition.weapon_scene.instantiate()
 
 		weapon.definition = definition
@@ -142,7 +143,9 @@ func equip(definition: WeaponDefinition) -> void:
 		hardpoint.add_child(weapon)
 		weapons.append(weapon)
 
-		weapon.stagger(weapons.size() - 1, hardpoints.get_child_count())
+		weapon.stagger(weapons.size() - 1, hardpoints.size())
+
+	_recalculate_damage_effects()
 
 func aim_target() -> Vector2:
 	var offset: Vector2 = get_global_mouse_position() - global_position
@@ -175,8 +178,9 @@ func _physics_process(_delta: float) -> void:
 
 	for n: int in pending_parts.size():
 		pending_parts[n].take_damage(pending_damage[n])
-		pending_parts.clear()
-		pending_damage.clear()
+
+	pending_parts.clear()
+	pending_damage.clear()
 
 func _integrate_forces(state: PhysicsDirectBodyState2D) -> void:
 	for i: int in state.get_contact_count():

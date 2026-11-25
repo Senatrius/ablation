@@ -4,6 +4,7 @@
 [ext_resource type="PackedScene" uid="uid://dlix0ngaj4lt4" path="res://systems/player/player.tscn" id="2_mprjm"]
 [ext_resource type="Texture2D" uid="uid://cbj0hplcgcfv6" path="res://assets/bg.jpeg" id="3_tsptn"]
 [ext_resource type="PackedScene" uid="uid://c56w6p0iuiq1l" path="res://systems/asteroid/asteroid.tscn" id="4_mprjm"]
+[ext_resource type="Resource" uid="uid://d2iaunjbus0ld" path="res://data/asteroids/medium.tres" id="5_tsptn"]
 
 [node name="Game" type="Node2D" unique_id=1066872153]
 script = ExtResource("1_877rp")
@@ -28,3 +29,9 @@ position = Vector2(321, 88)
 mass = 0.1
 center_of_mass = Vector2(-4.4548445, 5.6581445)
 inertia = 0.01
+
+[node name="Asteroid2" parent="." unique_id=700620523 instance=ExtResource("4_mprjm")]
+position = Vector2(464, 89)
+asteroid_def = ExtResource("5_tsptn")
+chunk_size = 12.0
+min_chunk_cells = 13

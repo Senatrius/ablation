@@ -1,0 +1,34 @@
+[gd_resource type="Resource" script_class="AsteroidDefinition" format=3 uid="uid://d2iaunjbus0ld"]
+
+[ext_resource type="Script" uid="uid://jpym26b3k13k" path="res://resources/material_definition.gd" id="1_83wmc"]
+[ext_resource type="Resource" uid="uid://qt65oenuf3lh" path="res://data/materials/spacedust.tres" id="2_0beym"]
+[ext_resource type="Script" uid="uid://dj00bpyu882fq" path="res://systems/generators/generation_pass.gd" id="2_4cp68"]
+[ext_resource type="Script" uid="uid://cd5dnoko1i4s8" path="res://resources/asteroid_definition.gd" id="3_0djsj"]
+[ext_resource type="Resource" uid="uid://dqip2hdtfcsa6" path="res://data/materials/rock.tres" id="3_yvnrh"]
+[ext_resource type="Resource" uid="uid://nogl4rqjmtq4" path="res://data/materials/dense_rock.tres" id="4_bhojj"]
+[ext_resource type="Resource" uid="uid://cunpusp2iyg8n" path="res://data/materials/volatile_gas.tres" id="6_4dp3d"]
+[ext_resource type="Script" uid="uid://c33em3pwdrqaa" path="res://systems/generators/volatile_pocket_pass.gd" id="7_vjrg7"]
+
+[sub_resource type="Resource" id="Resource_apae5"]
+script = ExtResource("7_vjrg7")
+material = ExtResource("6_4dp3d")
+count = Vector2i(1, 2)
+radius = Vector2(2, 5)
+depth_range = Vector2(0.3, 0.6)
+metadata/_custom_type_script = "uid://c33em3pwdrqaa"
+
+[resource]
+script = ExtResource("3_0djsj")
+width = 96
+height = 140
+materials = Array[ExtResource("1_83wmc")]([ExtResource("2_0beym"), ExtResource("3_yvnrh"), ExtResource("4_bhojj")])
+layer_boundaries = Array[float]([0.72, 0.19])
+layer_variation = Array[float]([0.69, 0.24])
+frequency = 0.5
+fractal_type = 1
+gain = 0.2
+octaves = 2
+passes = Array[ExtResource("2_4cp68")]([SubResource("Resource_apae5")])
+id = &"medium-asteroid"
+display_name = "Medium Asteroid"
+metadata/_custom_type_script = "uid://cd5dnoko1i4s8"
