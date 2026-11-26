@@ -12,6 +12,8 @@ config_version=5
 
 config/name="Solar Ablation"
 run/main_scene="uid://d1w5n631p8hf2"
+config/use_custom_user_dir=true
+config/custom_user_dir_name="Ablation"
 config/features=PackedStringArray("4.8", "Mobile")
 config/icon="res://icon.svg"
 

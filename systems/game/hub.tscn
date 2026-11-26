@@ -47,3 +47,8 @@ text = "Refund"
 unique_name_in_owner = true
 layout_mode = 2
 text = "Grant (10k)"
+
+[node name="DeleteSaveButton" type="Button" parent="CenterContainer/VBoxContainer" unique_id=1945727189]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Delete Save"

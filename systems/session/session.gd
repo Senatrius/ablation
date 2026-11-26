@@ -3,6 +3,8 @@ extends Node
 signal storage_changed
 signal upgrades_changed
 
+const SAVE_PATH: String = "user://save_files/save.json"
+const SAVE_VERSION: int = 1
 const HUB_SCENE: String = "uid://d1w5n631p8hf2"
 const GAME_SCENE: String = "uid://dkw67lh51fmdc"
 const SALVAGE_ON_DEATH: float = 0.1
@@ -13,6 +15,7 @@ var storage: Dictionary[StringName, int] = {}
 var run_active: bool = false
 var upgrade_levels: Dictionary[StringName, int] = {}
 var discovered: Dictionary[StringName, bool] = {}
+var known_materials: Array[StringName] = []
 
 func _ready() -> void:
 	cargo.changed.connect(_note_discoveries)
@@ -23,6 +26,8 @@ func _ready() -> void:
 
 	if OS.is_debug_build():
 		_validate_content()
+
+	_load_game()
 
 func level_of(upgrade: UpgradeDefinition) -> int:
 	return upgrade_levels.get(upgrade.id, 0)
@@ -69,6 +74,8 @@ func buy(upgrade: UpgradeDefinition) -> bool:
 	upgrade_levels[upgrade.id] = level_of(upgrade) + 1
 	storage_changed.emit()
 	upgrades_changed.emit()
+
+	save_game()
 	return true
 
 func upgraded(base: ContentDefinition) -> ContentDefinition:
@@ -99,6 +106,8 @@ func end_run(returned: bool) -> void:
 
 	get_tree().change_scene_to_file(HUB_SCENE)
 
+	save_game()
+
 func storage_total() -> int:
 	var total: int = 0
 
@@ -106,8 +115,6 @@ func storage_total() -> int:
 		total += storage[id]
 
 	return total
-
-var known_materials: Array[StringName] = []
 
 func _validate_content() -> void:
 	var targets: Dictionary[StringName, ContentDefinition] = {}
@@ -133,9 +140,97 @@ func refund_upgrades() -> void:
 	storage_changed.emit()
 	upgrades_changed.emit()
 
+	save_game()
+
 func debug_grant(amount: int) -> void:
 	for id: StringName in known_materials:
 		storage[id] = storage.get(id, 0) + amount
 		discovered[id] = true
 
 	storage_changed.emit()
+
+	save_game()
+
+func save_game() -> void:
+	var data: Dictionary = {
+		"version": SAVE_VERSION,
+		"storage": _string_keys(storage),
+		"upgrades": _string_keys(upgrade_levels),
+		"discovered": discovered.keys().map(func(id: StringName) -> String: return String(id)),
+	}
+
+	var folder: String = SAVE_PATH.get_base_dir()
+	if not DirAccess.dir_exists_absolute(folder):
+		var folder_error: Error = DirAccess.make_dir_recursive_absolute(folder)
+
+		if folder_error != OK:
+			push_error("Couldn't create the save folder %s: %s" % [folder, error_string(folder_error)])
+			return
+
+	var temp_path: String = SAVE_PATH + ".tmp"
+	var file: FileAccess = FileAccess.open(temp_path, FileAccess.WRITE)
+
+	if file == null:
+		push_error("Couldn't write the save: %s" % error_string(FileAccess.get_open_error()))
+		return
+
+	file.store_string(JSON.stringify(data, "\t"))
+	file.close()
+
+	var error: Error = DirAccess.rename_absolute(temp_path, SAVE_PATH)
+	if error != OK:
+		push_error("Couldn't replace the save: %s" % error_string(error))
+
+func wipe_save() -> void:
+	storage.clear()
+	upgrade_levels.clear()
+	discovered.clear()
+	DirAccess.remove_absolute(SAVE_PATH)
+
+	storage_changed.emit()
+	upgrades_changed.emit()
+
+
+func _load_game() -> void:
+	if not FileAccess.file_exists(SAVE_PATH):
+		return
+
+	var parsed: Variant = JSON.parse_string(FileAccess.get_file_as_string(SAVE_PATH))
+
+	if not parsed is Dictionary:
+		DirAccess.rename_absolute(SAVE_PATH, SAVE_PATH + ".broken")
+		push_error("The save file was unreadable; it was kept as save.json.broken and a new game started.")
+		return
+
+	var data: Dictionary = parsed
+
+	var saved_storage: Dictionary = data.get("storage", {})
+	for key: String in saved_storage:
+		var id: StringName = StringName(key)
+
+		if not known_materials.has(id):
+			push_warning("Save has unknown material '%s'; dropped." % key)
+			continue
+
+		storage[id] = int(saved_storage[key])
+
+	var saved_upgrades: Dictionary = data.get("upgrades", {})
+	for key: String in saved_upgrades:
+		var upgrade: UpgradeDefinition = UPGRADE_LIST.find(StringName(key))
+
+		if upgrade == null:
+			push_warning("Save has unknown upgrade '%s'; dropped." % key)
+			continue
+
+		upgrade_levels[upgrade.id] = clampi(int(saved_upgrades[key]), 0, upgrade.max_level())
+
+	for key: Variant in data.get("discovered", []):
+		discovered[StringName(str(key))] = true
+
+static func _string_keys(source: Dictionary) -> Dictionary:
+	var result: Dictionary = {}
+
+	for key: Variant in source:
+		result[String(key)] = source[key]
+
+	return result

@@ -5,6 +5,7 @@ extends Control
 @onready var play_button: Button = %PlayButton
 @onready var refund_button: Button = %RefundButton
 @onready var grant_button: Button = %GrantButton
+@onready var delete_save_button: Button = %DeleteSaveButton
 
 var _refresh_queued: bool = false
 
@@ -18,6 +19,9 @@ func _ready() -> void:
 	Session.upgrades_changed.connect(_queue_refresh)
 
 	play_button.grab_focus()
+
+	delete_save_button.pressed.connect(Session.wipe_save)
+	delete_save_button.visible = OS.is_debug_build()
 
 func _queue_refresh() -> void:
 	if _refresh_queued:
@@ -35,7 +39,6 @@ func _refresh() -> void:
 		child.queue_free()
 
 	for upgrade: UpgradeDefinition in Session.UPGRADE_LIST.upgrades:
-		# Never-bought upgrades whose first level needs an undiscovered material stay hidden entirely.
 		if Session.level_of(upgrade) == 0 and not Session.is_revealed(upgrade):
 			continue
 

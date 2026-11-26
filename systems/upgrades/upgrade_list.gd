@@ -74,3 +74,10 @@ func validate(material_ids: Array[StringName], targets: Dictionary[StringName, C
 					problems.append("%s level %d: %s has no stat '%s'" % [upgrade.id, n + 1, upgrade.target, modifier.stat])
 
 	return problems
+
+func find(id: StringName) -> UpgradeDefinition:
+	for upgrade: UpgradeDefinition in upgrades:
+		if upgrade.id == id:
+			return upgrade
+
+	return null
