@@ -1,4 +1,5 @@
 class_name ChunkMap extends RefCounted
+@warning_ignore_start("integer_division")
 
 const EMPTY: int = -1
 
@@ -18,15 +19,18 @@ static func build(cells: PackedByteArray, grid_size: Vector2i, materials: Array[
 	var labels: PackedInt32Array = _label_components(cells, grid_size, regions)
 	var roots: PackedInt32Array = _merge_small(cells, grid_size, labels, min_cells)
 	var map: ChunkMap = ChunkMap.new()
+	var compact: PackedInt32Array = PackedInt32Array()
+
 	map.size = grid_size
 
-	var compact: PackedInt32Array = PackedInt32Array()
 	compact.resize(roots.size())
 	compact.fill(EMPTY)
+
 	var chunk_count: int = 0
 
 	for label: int in roots.size():
 		var root: int = roots[label]
+
 		if compact[root] == EMPTY:
 			compact[root] = chunk_count
 			chunk_count += 1
@@ -84,8 +88,10 @@ func fraction(chunk: int) -> float:
 
 func _rebuild_members(chunk_count: int) -> void:
 	var lists: Array[Array] = []
+
 	for c: int in chunk_count:
 		lists.append([])
+
 	for i: int in ids.size():
 		var c: int = ids[i]
 		if c != EMPTY:
@@ -125,6 +131,7 @@ func _build_neighbours(chunk_count: int) -> void:
 static func _link(sets: Array[Dictionary], a: int, b: int) -> void:
 	if b == EMPTY or b == a:
 		return
+
 	sets[a][b] = true
 	sets[b][a] = true
 
@@ -142,12 +149,13 @@ static func _voronoi_regions(cells: PackedByteArray, grid_size: Vector2i, chunk_
 			weights.append(rng.randf_range(-size_variation, size_variation) * chunk_size * chunk_size)
 
 	var warp: FastNoiseLite = FastNoiseLite.new()
-	warp.seed = rng_seed
-	warp.frequency = 0.5 / chunk_size
 	var warp_amount: float = chunk_size * 0.4
 	var warp_x: PackedByteArray = warp.get_image(grid_size.x, grid_size.y, false, false, false).get_data()
 	warp.offset = Vector3(512.0, -512.0, 0.0)
 	var warp_y: PackedByteArray = warp.get_image(grid_size.x, grid_size.y, false, false, false).get_data()
+
+	warp.seed = rng_seed
+	warp.frequency = 0.5 / chunk_size
 
 	var regions: PackedInt32Array = PackedInt32Array()
 	regions.resize(cells.size())
@@ -169,6 +177,7 @@ static func _voronoi_regions(cells: PackedByteArray, grid_size: Vector2i, chunk_
 
 			for oy: int in range(maxi(gy - 1, 0), mini(gy + 2, grid.y)):
 				for ox: int in range(maxi(gx - 1, 0), mini(gx + 2, grid.x)):
+
 					var g: int = oy * grid.x + ox
 					var score: float = p.distance_squared_to(seeds[g]) - weights[g]
 
@@ -195,10 +204,12 @@ static func _label_components(cells: PackedByteArray, grid_size: Vector2i, regio
 		labels[start] = next
 		queue.clear()
 		queue.append(start)
+
 		var head: int = 0
 		while head < queue.size():
 			var i: int = queue[head]
 			head += 1
+
 			var x: int = i % grid_size.x
 			if x > 0:
 				_join(i, i - 1, cells, regions, labels, queue)
@@ -220,6 +231,7 @@ static func _join(from: int, to: int, cells: PackedByteArray, regions: PackedInt
 
 static func _merge_small(cells: PackedByteArray, grid_size: Vector2i, labels: PackedInt32Array, min_cells: int) -> PackedInt32Array:
 	var count: int = 0
+
 	for label: int in labels:
 		count = maxi(count, label + 1)
 
@@ -292,12 +304,15 @@ func find_pockets(cells: PackedByteArray, materials: Array[MaterialDefinition]) 
 		pocket_of[start] = p
 		queue.clear()
 		queue.append(start)
+
 		var fuel: int = 0
 		var head: int = 0
+
 		while head < queue.size():
 			var c: int = queue[head]
 			head += 1
 			fuel += volatile_cells[c]
+
 			for neighbour: int in neighbours[c]:
 				if pocket_of[neighbour] == EMPTY and _is_volatile(neighbour, volatile_cells):
 					pocket_of[neighbour] = p
@@ -323,3 +338,42 @@ static func _consider(i: int, n: int, c: int, cells: PackedByteArray, labels: Pa
 	if score > target_score[c]:
 		target_score[c] = score
 		target[c] = d
+
+func find_islands() -> Array[PackedInt32Array]:
+	var islands: Array[PackedInt32Array] = []
+	var visited: PackedByteArray = PackedByteArray()
+	visited.resize(hp.size())
+	var queue: PackedInt32Array = PackedInt32Array()
+
+	for start: int in hp.size():
+		if visited[start] != 0 or not has_chunk(start):
+			continue
+		visited[start] = 1
+		queue.clear()
+		queue.append(start)
+		var head: int = 0
+		while head < queue.size():
+			var chunk: int = queue[head]
+			head += 1
+			for neighbour: int in neighbours[chunk]:
+				if visited[neighbour] == 0 and has_chunk(neighbour):
+					visited[neighbour] = 1
+					queue.append(neighbour)
+		islands.append(queue.duplicate())
+
+	return islands
+
+func cell_count(chunk_ids: PackedInt32Array) -> int:
+	var count: int = 0
+
+	for chunk: int in chunk_ids:
+		count += members[chunk].size()
+	return count
+
+func cells_of(chunk_ids: PackedInt32Array) -> PackedInt32Array:
+	var result: PackedInt32Array = PackedInt32Array()
+
+	for chunk: int in chunk_ids:
+		result.append_array(members[chunk])
+
+	return result

@@ -1,4 +1,5 @@
 class_name VolatilePocketPass extends GenerationPass
+@warning_ignore_start("integer_division")
 
 @export var material: MaterialDefinition
 @export_range(0.0, 1.0, 0.01) var chance: float = 0.15

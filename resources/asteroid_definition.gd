@@ -21,5 +21,19 @@ class_name AsteroidDefinition extends ContentDefinition
 @export_range(1, 64, 1, "or_greater") var min_chunk_cells: int = 8
 @export_range(0.05, 4.0, 0.05, "or_greater") var chunk_toughness: float = 1.0
 
+@export_group("Physics")
+@export_range(0.0001, 1.0, 0.0001, "or_greater") var mass_per_density: float = 0.01
+@export_range(0.0, 1.0, 0.01, "or_greater", "suffix:s") var collision_rebuild_interval: float = 0.1
+
+@export_group("Breaking")
+@export_range(0, 200, 1, "or_greater") var min_fragment_cells: int = 40
+@export_range(0.0, 1.0) var damage_spread: float = 0.1
+@export var fragment_kick: float = 12.0
+@export var explosion_kick: float = 150.0
+@export var blast_debris_speed: float = 2.5
+@export var debris_min_speed: float = 20.0
+@export_range(0.0, 500.0, 1.0, "or_greater") var debris_max_speed: float = 60.0
+@export var debris_max_spin: float = 4.0
+
 @export_group("Generation")
 @export var passes: Array[GenerationPass] = []
