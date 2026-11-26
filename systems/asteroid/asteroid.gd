@@ -5,6 +5,8 @@ signal fragment_spawned(fragment: Asteroid)
 
 const HIT_SEARCH_DISTANCE: float = 6.0
 const HIT_SEARCH_STEP: float = 0.5
+const BLAST_WAVE_SPEED: float = 150.0
+const MAX_BREAKS_PER_FRAME: int = 5
 const DAMAGE_PAINT_STEPS: int = 12
 const COLLISION_CLEANUP_INSET: float = 0.01
 
@@ -41,6 +43,8 @@ var _solid: int = 0
 var _used_seed: int = 0
 var _tint_offset: Vector2i = Vector2i.ZERO
 var _painted_step: PackedInt32Array
+var _repaint_queue: PackedInt32Array = PackedInt32Array()
+var _repaint_queued: PackedByteArray = PackedByteArray()
 var _texture_dirty: bool = false
 var _collision_dirty: bool = false
 var _islands_dirty: bool = false
@@ -48,9 +52,14 @@ var _collision_interval: float = 0.0
 var _is_fragment: bool = false
 var _shape_owner: int = -1
 var _mass_sum: float = 0.0
+var _mass_dirty: bool = false
 var _mass_moment: Vector2 = Vector2.ZERO
 var _mass_second_moment: float = 0.0
 var _pocket_triggered: PackedByteArray
+var _clock: float = 0.0
+var _scheduled_chunks: PackedInt32Array = PackedInt32Array()
+var _scheduled_times: PackedFloat32Array = PackedFloat32Array()
+var _scheduled_directions: PackedVector2Array = PackedVector2Array()
 
 func _ready() -> void:
 	if blueprint != null:
@@ -58,7 +67,6 @@ func _ready() -> void:
 		blueprint = null
 	else:
 		generate()
-
 
 func generate() -> void:
 	if asteroid_def == null:
@@ -104,6 +112,10 @@ func _apply(bp: AsteroidBlueprint) -> void:
 	_painted_step.fill(-1)
 	_pocket_triggered = PackedByteArray()
 	_pocket_triggered.resize(chunks.pockets.size())
+
+	_repaint_queue.clear()
+	_repaint_queued = PackedByteArray()
+	_repaint_queued.resize(cells.size())
 
 	_texture = ImageTexture.create_from_image(_image)
 	_apply_collision(bp.collision_pieces)
@@ -181,8 +193,9 @@ func _damage_area(cx: int, cy: int, radius: float, damage: float, falloff: float
 			_break_chunk(chunk, world_direction)
 		else:
 			var away: Vector2 = _chunk_centre(chunk) - (blast_centre as Vector2)
-			# _spawn_debris pushes debris *against* the hit direction, so point the "hit" at the blast.
-			_break_chunk(chunk, global_transform.basis_xform(-away).normalized(), blast_debris_speed)
+			_scheduled_chunks.append(chunk)
+			_scheduled_times.append(_clock + away.length() / BLAST_WAVE_SPEED)
+			_scheduled_directions.append(global_transform.basis_xform(-away).normalized())
 
 func _chunk_centre(chunk: int) -> Vector2:
 	var sum: Vector2 = Vector2.ZERO
@@ -281,7 +294,7 @@ func _remove_cells(indices: PackedInt32Array) -> void:
 		queue_free()
 		return
 
-	_apply_mass_properties()
+	_mass_dirty = true
 
 	_collision_dirty = true
 	for i: int in indices:
@@ -505,12 +518,26 @@ func _repaint_with_neighbours(i: int) -> void:
 		_repaint(i + size.x)
 
 func _repaint(i: int) -> void:
-	var x: int = i % size.x
-	var y: int = i / size.x
-	_image.set_pixel(x, y, _painter.colour_at(cells, health, chunks.ids, i, x, y))
+	if _repaint_queued[i] == 1:
+		return
+
+	_repaint_queued[i] = 1
+	_repaint_queue.append(i)
+
+func _flush_repaints() -> void:
+	if _repaint_queue.is_empty():
+		return
+	for i: int in _repaint_queue:
+		_repaint_queued[i] = 0
+		var x: int = i % size.x
+		@warning_ignore("integer_division")
+		var y: int = i / size.x
+		_image.set_pixel(x, y, _painter.colour_at(cells, health, chunks.ids, i, x, y))
+	_repaint_queue.clear()
 	_texture_dirty = true
 
 func _rebuild_collision() -> void:
+	_flush_repaints()
 	_collision_dirty = false
 	_collision_interval = collision_recalculation_interval
 	_apply_collision(collision_pieces_from(_image, size))
@@ -544,14 +571,43 @@ static func _convex_pieces(outline: PackedVector2Array) -> Array[PackedVector2Ar
 
 	return pieces
 
+func _run_scheduled_breaks() -> void:
+	var done: int = 0
+	var n: int = 0
+
+	while n < _scheduled_chunks.size() and done < MAX_BREAKS_PER_FRAME:
+		if _scheduled_times[n] > _clock:
+			n += 1
+			continue
+
+		var chunk: int = _scheduled_chunks[n]
+		var direction: Vector2 = _scheduled_directions[n]
+
+		_scheduled_chunks.remove_at(n)
+		_scheduled_times.remove_at(n)
+		_scheduled_directions.remove_at(n)
+
+		if chunks.has_chunk(chunk):
+			_break_chunk(chunk, direction, blast_debris_speed)
+			done += 1
+
 func _process(_delta: float) -> void:
 	if _texture_dirty:
+		_flush_repaints()
+
 		_texture.update(_image)
 		_texture_dirty = false
 
 func _physics_process(delta: float) -> void:
+	_clock += delta
+	_run_scheduled_breaks()
+
 	if _islands_dirty and not Engine.is_editor_hint():
 		_split_islands()
+
+	if _mass_dirty:
+		_mass_dirty = false
+		_apply_mass_properties()
 
 	_collision_interval -= delta
 	if _collision_dirty and _collision_interval <= 0.0:
