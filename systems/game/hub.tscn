@@ -1,0 +1,33 @@
+[gd_scene format=3 uid="uid://d1w5n631p8hf2"]
+
+[ext_resource type="Script" uid="uid://bc8vfgxkdoq42" path="res://systems/game/hub.gd" id="1_bjl43"]
+
+[node name="Hub" type="Control" unique_id=2014631300]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_bjl43")
+
+[node name="CenterContainer" type="CenterContainer" parent="." unique_id=1782380849]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="CenterContainer" unique_id=761168864]
+layout_mode = 2
+
+[node name="StorageLabel" type="Label" parent="CenterContainer/VBoxContainer" unique_id=1972332338]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="PlayButton" type="Button" parent="CenterContainer/VBoxContainer" unique_id=1512485984]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Play
+"

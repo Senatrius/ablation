@@ -5,7 +5,8 @@ signal destroyed()
 @export var hardpoints: Array[Marker2D] = []
 @export var core_data: ShipCore
 @export var weapon_def: WeaponDefinition
-@export var cargo_capacity: int = 300
+@export var cargo_capacity: int = 5000
+@export var spill_speed: float = 30.0
 
 @export_group("Ship Parts")
 @export var body: ShipPart
@@ -30,22 +31,19 @@ signal destroyed()
 @export_range(0.0, 1.0, 0.05) var max_misfire_chance: float = 0.8
 
 var weapons: Array[Weapon] = []
-
 var modifiers: ShipModifiers = ShipModifiers.new()
-var cargo: Dictionary[StringName, int] = {}
-var cargo_limit: int = 0
-var cargo_used: int = 0
-
 var is_accelerating: bool = false
 var is_decelerating: bool = false
 var turn_input: float = 0.0
-
 var parts: Array[ShipPart] = []
 var pending_parts: Array[ShipPart] = []
 var pending_damage: PackedFloat32Array = PackedFloat32Array()
 var part_by_shape: Dictionary[Node, ShipPart] = {}
+var cargo: Cargo
 
 func _ready() -> void:
+	cargo = Session.cargo
+
 	for part:ShipPart in [body, core, rear_engines, left_engine, right_engine, left_cargo, right_cargo, left_wing, right_wing]:
 		if part != null: parts.append(part)
 		if part.collider != null: part_by_shape[part.collider] = part
@@ -77,26 +75,37 @@ func _recalculate_damage_effects() -> void:
 		weapon.misfire_chance = wing.damage_ratio() * max_misfire_chance if wing else 0.0
 
 	var half: float = cargo_capacity * 0.5
-	cargo_limit = int(half * left_cargo.effectiveness(0.0) + half * right_cargo.effectiveness(0.0))
+	var spilled: Dictionary[StringName, int] = cargo.set_capacity(
+		int(half * left_cargo.effectiveness(0.0) + half * right_cargo.effectiveness(0.0)))
 
-	_spill_excess_cargo()
+	if not spilled.is_empty():
+		_eject(spilled)
 
-func _spill_excess_cargo() -> void:
-	var excess: int = cargo_used - cargo_limit
+func cargo_free() -> int:
+	return cargo.free_space()
 
-	while excess > 0 and not cargo.is_empty():
-		var id: StringName = cargo.keys().pick_random()
-		var lost: int = mini(cargo[id], excess)
+func collect(items: Dictionary[StringName, int]) -> Dictionary[StringName, int]:
+	return cargo.add(items)
 
-		cargo[id] -= lost
+func _eject(items: Dictionary[StringName, int]) -> void:
+	var parent: Node = get_parent()
 
-		if cargo[id] == 0:
-			cargo.erase(id)
+	if parent == null:
+		return
 
-		cargo_used -= lost
-		excess -= lost
+	var pods: Array[ShipPart] = [left_cargo, right_cargo]
 
-		print("Lost %d %s" % [lost, id])
+	for id: StringName in items:
+		var pod: ShipPart = pods.pick_random()
+		var outward: Vector2 = (pod.global_position - global_position).normalized()
+		var velocity: Vector2 = linear_velocity + outward.rotated(randf_range(-0.5, 0.5)) * spill_speed
+
+		var image: Image = Image.create_empty(3, 3, false, Image.FORMAT_RGBA8)
+		image.fill(Color(0.6, 0.6, 0.6))
+
+		var debris: ChunkDebris = ChunkDebris.new()
+		debris.setup(image, pod.global_position, global_rotation, velocity, randf_range(-3.0, 3.0), {id: items[id]})
+		parent.add_child(debris)
 
 func _part_at(world_point: Vector2) -> ShipPart:
 	var nearest: ShipPart = null
@@ -197,20 +206,3 @@ func _integrate_forces(state: PhysicsDirectBodyState2D) -> void:
 			pending_damage.append((speed_change - safe_impact_speed) * damage_per_impact_speed)
 
 	ShipMovement.integrate_forces(core_data, modifiers, is_accelerating, is_decelerating, turn_input, state)
-
-func cargo_free() -> int:
-	return maxi(cargo_limit - cargo_used, 0)
-
-func collect(contents: Dictionary[StringName, int]) -> Dictionary[StringName, int]:
-	var leftover: Dictionary[StringName, int] = {}
-
-	for id: StringName in contents:
-		var take: int = mini(contents[id], cargo_free())
-		if take > 0:
-			cargo[id] = cargo.get(id, 0) + take
-			cargo_used += take
-
-		if contents[id] > take:
-			leftover[id] = contents[id] - take
-
-	return leftover

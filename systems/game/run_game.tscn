@@ -1,0 +1,37 @@
+[gd_scene format=3 uid="uid://dkw67lh51fmdc"]
+
+[ext_resource type="Script" uid="uid://bql3nlpso2ti4" path="res://systems/game/run_game.gd" id="1_1bbt8"]
+[ext_resource type="Texture2D" uid="uid://cbj0hplcgcfv6" path="res://assets/bg.jpeg" id="2_tmmwb"]
+[ext_resource type="Script" uid="uid://bn0gtgjbsh0rp" path="res://systems/gameplay/asteroid_field.gd" id="3_8q2b7"]
+[ext_resource type="PackedScene" uid="uid://c56w6p0iuiq1l" path="res://systems/asteroid/asteroid.tscn" id="4_bji65"]
+[ext_resource type="Script" uid="uid://djoaj2442va56" path="res://resources/asteroid_spawn.gd" id="5_xiu72"]
+[ext_resource type="Resource" uid="uid://dflvt2tvvnwcf" path="res://data/asteroids/spawn/small.tres" id="6_lm8ym"]
+[ext_resource type="Resource" uid="uid://ld0g4n0q28gj" path="res://data/asteroids/spawn/medium.tres" id="7_c48gv"]
+[ext_resource type="PackedScene" uid="uid://dlix0ngaj4lt4" path="res://systems/player/player.tscn" id="8_rbjob"]
+[ext_resource type="PackedScene" uid="uid://c1aauxvedko4w" path="res://systems/hud/hud.tscn" id="9_c3qml"]
+
+[node name="RunGame" type="Node2D" unique_id=1066872153]
+script = ExtResource("1_1bbt8")
+
+[node name="Parallax2D" type="Parallax2D" parent="." unique_id=341620252]
+show_behind_parent = true
+scroll_scale = Vector2(0.5, 0.5)
+repeat_size = Vector2(2048, 2048)
+autoscroll = Vector2(1, 0)
+repeat_times = 2
+
+[node name="Sprite2D" type="Sprite2D" parent="Parallax2D" unique_id=1680164387]
+texture_filter = 1
+texture_repeat = 2
+texture = ExtResource("2_tmmwb")
+
+[node name="AsteroidField" type="Node2D" parent="." unique_id=1942272418]
+script = ExtResource("3_8q2b7")
+asteroid_scene = ExtResource("4_bji65")
+spawn_entries = Array[ExtResource("5_xiu72")]([ExtResource("6_lm8ym"), ExtResource("7_c48gv")])
+print_timings = true
+
+[node name="Player" parent="." unique_id=877456594 instance=ExtResource("8_rbjob")]
+position = Vector2(126, 90)
+
+[node name="HUD" parent="." unique_id=39533245 instance=ExtResource("9_c3qml")]

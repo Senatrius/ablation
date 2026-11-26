@@ -236,10 +236,19 @@ func _remove_cells(indices: PackedInt32Array) -> void:
 		_surface.mark_with_neighbours(i, size)
 
 func _contents_of(indices: PackedInt32Array) -> Dictionary[StringName, int]:
-	var contents: Dictionary[StringName, int] = {}
+	var kg: Dictionary[StringName, float] = {}
+
 	for i: int in indices:
-		var id: StringName = materials[cells[i] - 1].id
-		contents[id] = contents.get(id, 0) + 1
+		var material: MaterialDefinition = materials[cells[i] - 1]
+		kg[material.id] = kg.get(material.id, 0.0) + material.kg_per_cell
+
+	var contents: Dictionary[StringName, int] = {}
+
+	for id: StringName in kg:
+		var amount: int = roundi(kg[id])
+		if amount > 0:
+			contents[id] = amount
+
 	return contents
 
 func _debris_image(indices: PackedInt32Array, rect: Rect2i) -> Image:

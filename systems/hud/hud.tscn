@@ -1,0 +1,20 @@
+[gd_scene format=3 uid="uid://c1aauxvedko4w"]
+
+[ext_resource type="Script" uid="uid://cm45tycvycuau" path="res://systems/hud/hud.gd" id="1_822og"]
+
+[node name="HUD" type="CanvasLayer" unique_id=39533245]
+script = ExtResource("1_822og")
+
+[node name="CargoLabel" type="Label" parent="." unique_id=454983915]
+anchors_preset = 2
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = 14.0
+offset_top = -57.0
+offset_right = 178.0
+offset_bottom = -12.0
+grow_vertical = 0
+
+[node name="ReturnLabel" type="Label" parent="." unique_id=1236245275]
+offset_right = 40.0
+offset_bottom = 23.0
