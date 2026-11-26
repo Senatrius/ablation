@@ -1,0 +1,38 @@
+[gd_resource type="Resource" script_class="UpgradeDefinition" format=3 uid="uid://ds40l26ewf5x4"]
+
+[ext_resource type="Script" uid="uid://dy8w52jgguqin" path="res://systems/upgrades/upgrade_level.gd" id="1_lc8r1"]
+[ext_resource type="Script" uid="uid://0rp1ob0c2vo4" path="res://resources/upgrade_definition.gd" id="2_5e3bd"]
+[ext_resource type="Script" uid="uid://crudet8bbddd2" path="res://systems/upgrades/stat_modifier.gd" id="2_h2js8"]
+
+[sub_resource type="Resource" id="Resource_njyws"]
+script = ExtResource("2_h2js8")
+stat = &"overcharge_rate"
+value = 0.3
+metadata/_custom_type_script = "uid://crudet8bbddd2"
+
+[sub_resource type="Resource" id="Resource_t23qn"]
+script = ExtResource("2_h2js8")
+stat = &"overcharge_capacity"
+value = 1.0
+metadata/_custom_type_script = "uid://crudet8bbddd2"
+
+[sub_resource type="Resource" id="Resource_h2js8"]
+script = ExtResource("1_lc8r1")
+cost = Dictionary[StringName, int]({
+&"compacted-rock": 600,
+&"dense-rock": 3400
+})
+modifiers = Array[ExtResource("2_h2js8")]([SubResource("Resource_njyws"), SubResource("Resource_t23qn")])
+metadata/_custom_type_script = "uid://dy8w52jgguqin"
+
+[resource]
+script = ExtResource("2_5e3bd")
+part = &"wings"
+target = &"scatter_laser"
+levels = Array[ExtResource("1_lc8r1")]([SubResource("Resource_h2js8")])
+requires = Dictionary[StringName, int]({
+&"compacted-rock": 1
+})
+id = &"overcharged-capacitors"
+display_name = "Overcharged Capacitors"
+metadata/_custom_type_script = "uid://0rp1ob0c2vo4"

@@ -31,6 +31,7 @@ signal destroyed()
 @export_range(0.0, 1.0, 0.05) var max_misfire_chance: float = 0.8
 
 var weapons: Array[Weapon] = []
+var weapon_stats: WeaponDefinition
 var modifiers: ShipModifiers = ShipModifiers.new()
 var is_accelerating: bool = false
 var is_decelerating: bool = false
@@ -144,10 +145,12 @@ func equip(definition: WeaponDefinition) -> void:
 	weapons.clear()
 
 	weapon_def = definition
-	for hardpoint: Marker2D in hardpoints:
-		var weapon: Weapon = definition.weapon_scene.instantiate()
+	weapon_stats = Session.upgraded(definition) as WeaponDefinition
 
-		weapon.definition = definition
+	for hardpoint: Marker2D in hardpoints:
+		var weapon: Weapon = weapon_stats.weapon_scene.instantiate()
+
+		weapon.definition = weapon_stats
 		weapon.hit_mask = 0b10
 
 		hardpoint.add_child(weapon)
@@ -159,7 +162,7 @@ func equip(definition: WeaponDefinition) -> void:
 
 func aim_target() -> Vector2:
 	var offset: Vector2 = get_global_mouse_position() - global_position
-	return global_position + offset.limit_length(weapon_def.max_range)
+	return global_position + offset.limit_length(weapon_stats.max_range)
 
 func _physics_process(_delta: float) -> void:
 	var main_mode: EngineFlare.Mode = EngineFlare.Mode.IDLE

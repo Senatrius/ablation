@@ -1,0 +1,43 @@
+[gd_resource type="Resource" script_class="UpgradeDefinition" format=3 uid="uid://b41xts30pwcoj"]
+
+[ext_resource type="Script" uid="uid://dy8w52jgguqin" path="res://systems/upgrades/upgrade_level.gd" id="1_odw0d"]
+[ext_resource type="Script" uid="uid://crudet8bbddd2" path="res://systems/upgrades/stat_modifier.gd" id="2_3i4xv"]
+[ext_resource type="Script" uid="uid://0rp1ob0c2vo4" path="res://resources/upgrade_definition.gd" id="2_igete"]
+
+[sub_resource type="Resource" id="Resource_svqck"]
+script = ExtResource("2_3i4xv")
+stat = &"damage_radius"
+value = 1.0
+metadata/_custom_type_script = "uid://crudet8bbddd2"
+
+[sub_resource type="Resource" id="Resource_3i4xv"]
+script = ExtResource("1_odw0d")
+cost = Dictionary[StringName, int]({
+&"dense-rock": 600
+})
+modifiers = Array[ExtResource("2_3i4xv")]([SubResource("Resource_svqck")])
+metadata/_custom_type_script = "uid://dy8w52jgguqin"
+
+[sub_resource type="Resource" id="Resource_q866w"]
+script = ExtResource("2_3i4xv")
+stat = &"damage_radius"
+value = 2.0
+metadata/_custom_type_script = "uid://crudet8bbddd2"
+
+[sub_resource type="Resource" id="Resource_jy1tt"]
+script = ExtResource("1_odw0d")
+cost = Dictionary[StringName, int]({
+&"compacted-rock": 100,
+&"dense-rock": 1500
+})
+modifiers = Array[ExtResource("2_3i4xv")]([SubResource("Resource_q866w")])
+metadata/_custom_type_script = "uid://dy8w52jgguqin"
+
+[resource]
+script = ExtResource("2_igete")
+part = &"wings"
+target = &"scatter_laser"
+levels = Array[ExtResource("1_odw0d")]([SubResource("Resource_3i4xv"), SubResource("Resource_jy1tt")])
+id = &"wide-emitters"
+display_name = "Wide Emitters"
+metadata/_custom_type_script = "uid://0rp1ob0c2vo4"

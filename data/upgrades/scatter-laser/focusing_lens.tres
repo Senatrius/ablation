@@ -1,0 +1,57 @@
+[gd_resource type="Resource" script_class="UpgradeDefinition" format=3 uid="uid://16wecct2gwqx"]
+
+[ext_resource type="Script" uid="uid://dy8w52jgguqin" path="res://systems/upgrades/upgrade_level.gd" id="1_u3vtb"]
+[ext_resource type="Script" uid="uid://crudet8bbddd2" path="res://systems/upgrades/stat_modifier.gd" id="2_tjhpt"]
+[ext_resource type="Script" uid="uid://0rp1ob0c2vo4" path="res://resources/upgrade_definition.gd" id="3_ojkx1"]
+
+[sub_resource type="Resource" id="Resource_re42m"]
+script = ExtResource("2_tjhpt")
+stat = &"damage"
+value = 2.0
+metadata/_custom_type_script = "uid://crudet8bbddd2"
+
+[sub_resource type="Resource" id="Resource_u8rsb"]
+script = ExtResource("1_u3vtb")
+cost = Dictionary[StringName, int]({
+&"rock": 2000
+})
+modifiers = Array[ExtResource("2_tjhpt")]([SubResource("Resource_re42m")])
+metadata/_custom_type_script = "uid://dy8w52jgguqin"
+
+[sub_resource type="Resource" id="Resource_vgabc"]
+script = ExtResource("2_tjhpt")
+stat = &"damage"
+value = 2.0
+metadata/_custom_type_script = "uid://crudet8bbddd2"
+
+[sub_resource type="Resource" id="Resource_nqemp"]
+script = ExtResource("1_u3vtb")
+cost = Dictionary[StringName, int]({
+&"dense-rock": 500,
+&"rock": 3000
+})
+modifiers = Array[ExtResource("2_tjhpt")]([SubResource("Resource_vgabc")])
+metadata/_custom_type_script = "uid://dy8w52jgguqin"
+
+[sub_resource type="Resource" id="Resource_qac8s"]
+script = ExtResource("2_tjhpt")
+stat = &"damage"
+value = 3.0
+metadata/_custom_type_script = "uid://crudet8bbddd2"
+
+[sub_resource type="Resource" id="Resource_lga6q"]
+script = ExtResource("1_u3vtb")
+cost = Dictionary[StringName, int]({
+&"dense_rock": 2500
+})
+modifiers = Array[ExtResource("2_tjhpt")]([SubResource("Resource_qac8s")])
+metadata/_custom_type_script = "uid://dy8w52jgguqin"
+
+[resource]
+script = ExtResource("3_ojkx1")
+part = &"wings"
+target = &"scatter_laser"
+levels = Array[ExtResource("1_u3vtb")]([SubResource("Resource_u8rsb"), SubResource("Resource_nqemp"), SubResource("Resource_lga6q")])
+id = &"focusing-lens"
+display_name = "Focusing Lens"
+metadata/_custom_type_script = "uid://0rp1ob0c2vo4"

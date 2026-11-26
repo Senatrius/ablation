@@ -1,0 +1,29 @@
+[gd_resource type="Resource" script_class="UpgradeDefinition" format=3 uid="uid://dpv75p1ef62tq"]
+
+[ext_resource type="Script" uid="uid://dy8w52jgguqin" path="res://systems/upgrades/upgrade_level.gd" id="1_0cthm"]
+[ext_resource type="Script" uid="uid://crudet8bbddd2" path="res://systems/upgrades/stat_modifier.gd" id="2_5xpto"]
+[ext_resource type="Script" uid="uid://0rp1ob0c2vo4" path="res://resources/upgrade_definition.gd" id="2_lu4nj"]
+
+[sub_resource type="Resource" id="Resource_i1nvr"]
+script = ExtResource("2_5xpto")
+stat = &"shots_per_second"
+operation = 1
+value = 25.0
+metadata/_custom_type_script = "uid://crudet8bbddd2"
+
+[sub_resource type="Resource" id="Resource_5xpto"]
+script = ExtResource("1_0cthm")
+cost = Dictionary[StringName, int]({
+&"rock": 5000
+})
+modifiers = Array[ExtResource("2_5xpto")]([SubResource("Resource_i1nvr")])
+metadata/_custom_type_script = "uid://dy8w52jgguqin"
+
+[resource]
+script = ExtResource("2_lu4nj")
+part = &"wings"
+target = &"scatter_laser"
+levels = Array[ExtResource("1_0cthm")]([SubResource("Resource_5xpto")])
+id = &"charged-capacitors"
+display_name = "Charged Capacitors"
+metadata/_custom_type_script = "uid://0rp1ob0c2vo4"

@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="UpgradeList" format=3 uid="uid://des4yn4to01jg"]
+
+[ext_resource type="Script" uid="uid://2mc4xj5xmllu" path="res://systems/upgrades/upgrade_list.gd" id="1_f0qes"]
+[ext_resource type="Script" uid="uid://0rp1ob0c2vo4" path="res://resources/upgrade_definition.gd" id="2_g88ps"]
+[ext_resource type="Resource" uid="uid://dpv75p1ef62tq" path="res://data/upgrades/scatter-laser/charged_capacitors.tres" id="3_4ffpf"]
+[ext_resource type="Resource" uid="uid://16wecct2gwqx" path="res://data/upgrades/scatter-laser/focusing_lens.tres" id="4_jpagu"]
+[ext_resource type="Resource" uid="uid://ds40l26ewf5x4" path="res://data/upgrades/scatter-laser/overcharged_capacitors.tres" id="5_77w7t"]
+[ext_resource type="Resource" uid="uid://b41xts30pwcoj" path="res://data/upgrades/scatter-laser/wide_emitters.tres" id="6_118vu"]
+
+[resource]
+script = ExtResource("1_f0qes")
+upgrades = Array[ExtResource("2_g88ps")]([ExtResource("3_4ffpf"), ExtResource("4_jpagu"), ExtResource("5_77w7t"), ExtResource("6_118vu")])
+metadata/_custom_type_script = "uid://2mc4xj5xmllu"
