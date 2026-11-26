@@ -41,3 +41,36 @@ static func _union(a: Dictionary[StringName, float], b: Dictionary[StringName, f
 			keys.append(key)
 
 	return keys
+
+func validate(material_ids: Array[StringName], targets: Dictionary[StringName, ContentDefinition]) -> PackedStringArray:
+	var problems: PackedStringArray = PackedStringArray()
+	var upgrade_ids: Dictionary[StringName, bool] = {}
+
+	for upgrade: UpgradeDefinition in upgrades:
+		upgrade_ids[upgrade.id] = true
+
+	for upgrade: UpgradeDefinition in upgrades:
+		var target: ContentDefinition = targets.get(upgrade.target)
+
+		if target == null:
+			problems.append("%s: target '%s' doesn't exist" % [upgrade.id, upgrade.target])
+
+		for required: StringName in upgrade.requires:
+			if not upgrade_ids.has(required):
+				problems.append("%s: requires '%s', which isn't an upgrade" % [upgrade.id, required])
+
+		for n: int in upgrade.levels.size():
+			var level: UpgradeLevel = upgrade.levels[n]
+
+			for id: StringName in level.cost:
+				if not material_ids.has(id):
+					problems.append("%s level %d: costs '%s', which isn't a material" % [upgrade.id, n + 1, id])
+
+			if target == null:
+				continue
+
+			for modifier: StatModifier in level.modifiers:
+				if not modifier.stat in target:
+					problems.append("%s level %d: %s has no stat '%s'" % [upgrade.id, n + 1, upgrade.target, modifier.stat])
+
+	return problems

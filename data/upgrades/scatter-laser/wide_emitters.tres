@@ -36,7 +36,7 @@ metadata/_custom_type_script = "uid://dy8w52jgguqin"
 [resource]
 script = ExtResource("2_igete")
 part = &"wings"
-target = &"scatter_laser"
+target = &"scatter-laser"
 levels = Array[ExtResource("1_odw0d")]([SubResource("Resource_3i4xv"), SubResource("Resource_jy1tt")])
 id = &"wide-emitters"
 display_name = "Wide Emitters"

@@ -28,11 +28,8 @@ metadata/_custom_type_script = "uid://dy8w52jgguqin"
 [resource]
 script = ExtResource("2_5e3bd")
 part = &"wings"
-target = &"scatter_laser"
+target = &"scatter-laser"
 levels = Array[ExtResource("1_lc8r1")]([SubResource("Resource_h2js8")])
-requires = Dictionary[StringName, int]({
-&"compacted-rock": 1
-})
 id = &"overcharged-capacitors"
 display_name = "Overcharged Capacitors"
 metadata/_custom_type_script = "uid://0rp1ob0c2vo4"

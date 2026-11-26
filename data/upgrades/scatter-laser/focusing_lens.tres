@@ -41,16 +41,13 @@ metadata/_custom_type_script = "uid://crudet8bbddd2"
 
 [sub_resource type="Resource" id="Resource_lga6q"]
 script = ExtResource("1_u3vtb")
-cost = Dictionary[StringName, int]({
-&"dense_rock": 2500
-})
 modifiers = Array[ExtResource("2_tjhpt")]([SubResource("Resource_qac8s")])
 metadata/_custom_type_script = "uid://dy8w52jgguqin"
 
 [resource]
 script = ExtResource("3_ojkx1")
 part = &"wings"
-target = &"scatter_laser"
+target = &"scatter-laser"
 levels = Array[ExtResource("1_u3vtb")]([SubResource("Resource_u8rsb"), SubResource("Resource_nqemp"), SubResource("Resource_lga6q")])
 id = &"focusing-lens"
 display_name = "Focusing Lens"

@@ -11,4 +11,4 @@ class_name WeaponDefinition extends ContentDefinition
 
 @export_group("Overcharge")
 @export var overcharge_rate: float = 0.0
-@export var overcharge_max: float = 0.0
+@export var overcharge_capacity: float = 0.0

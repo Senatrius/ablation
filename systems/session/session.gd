@@ -17,6 +17,13 @@ var discovered: Dictionary[StringName, bool] = {}
 func _ready() -> void:
 	cargo.changed.connect(_note_discoveries)
 
+	for resource: Resource in ContentLibrary.load_all("res://data/materials"):
+		if resource is MaterialDefinition:
+			known_materials.append(resource.id)
+
+	if OS.is_debug_build():
+		_validate_content()
+
 func level_of(upgrade: UpgradeDefinition) -> int:
 	return upgrade_levels.get(upgrade.id, 0)
 
@@ -32,14 +39,12 @@ func is_revealed(upgrade: UpgradeDefinition) -> bool:
 
 	return true
 
-
 func requirements_met(upgrade: UpgradeDefinition) -> bool:
 	for id: StringName in upgrade.requires:
 		if upgrade_levels.get(id, 0) < upgrade.requires[id]:
 			return false
 
 	return true
-
 
 func can_afford(cost: Dictionary[StringName, int]) -> bool:
 	for id: StringName in cost:
@@ -48,11 +53,9 @@ func can_afford(cost: Dictionary[StringName, int]) -> bool:
 
 	return true
 
-
 func can_buy(upgrade: UpgradeDefinition) -> bool:
 	var next: UpgradeLevel = upgrade.next_level(level_of(upgrade))
 	return next != null and is_revealed(upgrade) and requirements_met(upgrade) and can_afford(next.cost)
-
 
 func buy(upgrade: UpgradeDefinition) -> bool:
 	if not can_buy(upgrade):
@@ -68,8 +71,6 @@ func buy(upgrade: UpgradeDefinition) -> bool:
 	upgrades_changed.emit()
 	return true
 
-
-## `base` with every purchased upgrade applied.
 func upgraded(base: ContentDefinition) -> ContentDefinition:
 	return UPGRADE_LIST.upgraded(base, upgrade_levels)
 
@@ -105,3 +106,36 @@ func storage_total() -> int:
 		total += storage[id]
 
 	return total
+
+var known_materials: Array[StringName] = []
+
+func _validate_content() -> void:
+	var targets: Dictionary[StringName, ContentDefinition] = {}
+
+	for resource: Resource in ContentLibrary.load_all("res://data/weapons"):
+		if resource is ContentDefinition:
+			targets[resource.id] = resource
+
+	for problem: String in UPGRADE_LIST.validate(known_materials, targets):
+		push_error(problem)
+
+func refund_upgrades() -> void:
+	for upgrade: UpgradeDefinition in UPGRADE_LIST.upgrades:
+		var owned: int = mini(level_of(upgrade), upgrade.max_level())
+
+		for n: int in owned:
+			var cost: Dictionary[StringName, int] = upgrade.levels[n].cost
+
+			for id: StringName in cost:
+				storage[id] = storage.get(id, 0) + cost[id]
+
+	upgrade_levels.clear()
+	storage_changed.emit()
+	upgrades_changed.emit()
+
+func debug_grant(amount: int) -> void:
+	for id: StringName in known_materials:
+		storage[id] = storage.get(id, 0) + amount
+		discovered[id] = true
+
+	storage_changed.emit()

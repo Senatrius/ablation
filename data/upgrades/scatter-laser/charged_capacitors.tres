@@ -22,7 +22,7 @@ metadata/_custom_type_script = "uid://dy8w52jgguqin"
 [resource]
 script = ExtResource("2_lu4nj")
 part = &"wings"
-target = &"scatter_laser"
+target = &"scatter-laser"
 levels = Array[ExtResource("1_0cthm")]([SubResource("Resource_5xpto")])
 id = &"charged-capacitors"
 display_name = "Charged Capacitors"

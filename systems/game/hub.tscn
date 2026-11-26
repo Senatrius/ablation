@@ -26,8 +26,24 @@ layout_mode = 2
 unique_name_in_owner = true
 layout_mode = 2
 
-[node name="PlayButton" type="Button" parent="CenterContainer/VBoxContainer" unique_id=1512485984]
+[node name="UpgradeRows" type="VBoxContainer" parent="CenterContainer/VBoxContainer" unique_id=678553362]
+layout_mode = 2
+
+[node name="Buttons" type="HBoxContainer" parent="CenterContainer/VBoxContainer" unique_id=1910960565]
+layout_mode = 2
+
+[node name="PlayButton" type="Button" parent="CenterContainer/VBoxContainer/Buttons" unique_id=1512485984]
 unique_name_in_owner = true
 layout_mode = 2
 text = "Play
 "
+
+[node name="RefundButton" type="Button" parent="CenterContainer/VBoxContainer/Buttons" unique_id=353097443]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Refund"
+
+[node name="GrantButton" type="Button" parent="CenterContainer/VBoxContainer/Buttons" unique_id=200143657]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Grant (10k)"
