@@ -27,6 +27,7 @@ unique_name_in_owner = true
 layout_mode = 2
 
 [node name="UpgradeRows" type="VBoxContainer" parent="CenterContainer/VBoxContainer" unique_id=678553362]
+unique_name_in_owner = true
 layout_mode = 2
 
 [node name="Buttons" type="HBoxContainer" parent="CenterContainer/VBoxContainer" unique_id=1910960565]

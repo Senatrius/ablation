@@ -29,6 +29,8 @@ func _ready() -> void:
 
 	_load_game()
 
+
+
 func level_of(upgrade: UpgradeDefinition) -> int:
 	return upgrade_levels.get(upgrade.id, 0)
 
@@ -104,9 +106,9 @@ func end_run(returned: bool) -> void:
 		if kept > 0:
 			storage[id] = storage.get(id, 0) + kept
 
-	get_tree().change_scene_to_file(HUB_SCENE)
-
 	save_game()
+
+	get_tree().change_scene_to_file(HUB_SCENE)
 
 func storage_total() -> int:
 	var total: int = 0
@@ -203,6 +205,11 @@ func _load_game() -> void:
 		return
 
 	var data: Dictionary = parsed
+	var version: int = int(data.get("version", 0))
+
+	if version > SAVE_VERSION:
+		push_error("This save is from a newer version of the game (format %d); not loading it." % version)
+		return
 
 	var saved_storage: Dictionary = data.get("storage", {})
 	for key: String in saved_storage:

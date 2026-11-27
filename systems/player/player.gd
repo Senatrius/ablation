@@ -184,8 +184,12 @@ func _physics_process(_delta: float) -> void:
 
 	var target: Vector2 = aim_target()
 	var firing: bool = Input.is_action_pressed("primary")
+	var engines_idle: bool = not is_accelerating and not is_decelerating and turn_input == 0.0
+
 	for weapon: Weapon in weapons:
 		weapon.target = target
+		weapon.charging = firing and engines_idle
+
 		if firing:
 			weapon.try_fire()
 

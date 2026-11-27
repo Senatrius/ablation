@@ -1,7 +1,7 @@
 extends Control
 
 @onready var storage_label: Label = %StorageLabel
-@onready var upgrade_rows: VBoxContainer = $CenterContainer/VBoxContainer/UpgradeRows
+@onready var upgrade_rows: VBoxContainer = %UpgradeRows
 @onready var play_button: Button = %PlayButton
 @onready var refund_button: Button = %RefundButton
 @onready var grant_button: Button = %GrantButton
@@ -22,6 +22,8 @@ func _ready() -> void:
 
 	delete_save_button.pressed.connect(Session.wipe_save)
 	delete_save_button.visible = OS.is_debug_build()
+
+	_refresh()
 
 func _queue_refresh() -> void:
 	if _refresh_queued:

@@ -1,5 +1,8 @@
 class_name ScatterLaser extends Weapon
 
+const BEAM_COLOUR: Color = Color(0.5, 0.7, 0.8, 0.5)
+const HOT_BEAM_COLOUR: Color = Color(0.988, 0.588, 0.365, 0.851)
+
 func fire(at: Vector2) -> void:
 	var from: Vector2 = turret.global_position
 	var to: Vector2 = from + (scatter(at) - from).limit_length(definition.max_range)
@@ -17,7 +20,7 @@ func fire(at: Vector2) -> void:
 func spawn_ray(origin: Node2D, to: Vector2) -> void:
 	var ray: Ray = Ray.new()
 	ray.top_level = true
-	ray.width = 2.0
-	ray.default_color = Color(0.5, 0.7, 0.8, 0.5)
+	ray.width = 1.0
+	ray.default_color = BEAM_COLOUR.lerp(HOT_BEAM_COLOUR, overcharge_ratio())
 	ray.setup(origin, to)
 	add_child(ray)

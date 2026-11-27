@@ -15,6 +15,7 @@ const HIT_SEARCH_STEP: float = 0.5
 const BLAST_WAVE_SPEED: float = 150.0
 const MAX_BREAKS_PER_FRAME: int = 5
 const COLLISION_CLEANUP_INSET: float = 0.01
+const AREA_BONUS_PER_RADIUS: float = 0.15
 
 @export var asteroid_def: AsteroidDefinition
 @export var gen_seed: int = 0
@@ -112,9 +113,10 @@ func take_hit(world_point: Vector2, world_direction: Vector2, damage: float, rad
 	var cell: Vector2i = CellGrid.coords(centre, size.x)
 	_damage_area(cell.x, cell.y, radius, damage, falloff, world_direction)
 
-func _damage_area(cx: int, cy: int, radius: float, damage: float, falloff: float, world_direction: Vector2, blast_centre: Variant = null) -> void:
+func _damage_area(cx: int, cy: int, radius: float, damage: float, falloff: float, world_direction: Vector2, blast_centre: Variant = null, normalize: bool = true) -> void:
 	var reach: int = ceili(radius)
-	var hits: Dictionary[int, float] = {}
+	var weights: Dictionary[int, float] = {}
+	var total_weight: float = 0.0
 
 	for dy: int in range(-reach, reach + 1):
 		for dx: int in range(-reach, reach + 1):
@@ -134,25 +136,39 @@ func _damage_area(cx: int, cy: int, radius: float, damage: float, falloff: float
 				continue
 
 			var edge_factor: float = distance / radius if radius > 0.0 else 0.0
-			var chunk: int = chunks.ids[i]
+			var weight: float = 1.0 - edge_factor * falloff
 
-			hits[chunk] = hits.get(chunk, 0.0) + damage * (1.0 - edge_factor * falloff)
+			if weight <= 0.0:
+				continue
+
+			var chunk: int = chunks.ids[i]
+			weights[chunk] = weights.get(chunk, 0.0) + weight
+			total_weight += weight
+
+	if total_weight <= 0.0:
+		return
+
+	var per_weight: float = damage
+	if normalize:
+		per_weight = damage * (1.0 + AREA_BONUS_PER_RADIUS * radius) / total_weight
 
 	var broken: PackedInt32Array = PackedInt32Array()
 	var spread: float = asteroid_def.damage_spread
 
-	for chunk: int in hits:
-		_add_chunk_damage(chunk, hits[chunk], broken)
+	for chunk: int in weights:
+		var amount: float = weights[chunk] * per_weight
+		_add_chunk_damage(chunk, amount, broken)
 
 		if spread > 0.0:
 			for neighbour: int in chunks.neighbours[chunk]:
-				_add_chunk_damage(neighbour, hits[chunk] * spread, broken)
+				_add_chunk_damage(neighbour, amount * spread, broken)
 
 	for chunk: int in broken:
 		if blast_centre == null:
 			_break_chunk(chunk, world_direction)
 		else:
 			var away: Vector2 = CellGrid.average_centre(chunks.members[chunk], size.x) - (blast_centre as Vector2)
+
 			_blasts.add(chunk, _clock + away.length() / BLAST_WAVE_SPEED,
 				global_transform.basis_xform(-away).normalized())
 
@@ -303,7 +319,7 @@ func _detonate_pocket(p: int, fallback_centre: Vector2) -> void:
 	var gas_share: float = fuel / (fuel + _mass.solid_cells)
 	var radius: float = gas.explosion_base_radius + gas.explosion_radius * sqrt(fuel)
 
-	_damage_area(floori(centre.x), floori(centre.y), radius, gas.explosion_damage, gas.explosion_falloff, Vector2.ZERO, centre)
+	_damage_area(floori(centre.x), floori(centre.y), radius, gas.explosion_damage, gas.explosion_falloff, Vector2.ZERO, centre, false)
 
 	if is_inside_tree() and not is_queued_for_deletion():
 		var kick_speed: float = asteroid_def.explosion_kick * sqrt(gas_share)
