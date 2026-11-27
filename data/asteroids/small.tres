@@ -1,9 +1,10 @@
 [gd_resource type="Resource" script_class="AsteroidDefinition" format=3 uid="uid://bsgvc4a6tcdga"]
 
 [ext_resource type="Script" uid="uid://jpym26b3k13k" path="res://resources/material_definition.gd" id="1_c0a1t"]
-[ext_resource type="Resource" uid="uid://dqip2hdtfcsa6" path="res://data/materials/rock.tres" id="2_b4kyp"]
+[ext_resource type="Resource" uid="uid://47ubqy0gdsgc" path="res://data/asteroids/ladder.tres" id="1_qep1i"]
 [ext_resource type="Script" uid="uid://cd5dnoko1i4s8" path="res://resources/asteroid_definition.gd" id="2_uv2hp"]
 [ext_resource type="Resource" uid="uid://qt65oenuf3lh" path="res://data/materials/spacedust.tres" id="3_j6vh3"]
+[ext_resource type="Resource" uid="uid://dqip2hdtfcsa6" path="res://data/materials/regolith.tres" id="4_cu7nt"]
 [ext_resource type="Script" uid="uid://dj00bpyu882fq" path="res://systems/generators/generation_pass.gd" id="4_j6vh3"]
 [ext_resource type="Resource" uid="uid://cunpusp2iyg8n" path="res://data/materials/volatile_gas.tres" id="5_x4r5b"]
 [ext_resource type="Script" uid="uid://c33em3pwdrqaa" path="res://systems/generators/volatile_pocket_pass.gd" id="6_qep1i"]
@@ -21,13 +22,15 @@ metadata/_custom_type_script = "uid://c33em3pwdrqaa"
 script = ExtResource("2_uv2hp")
 width = 45
 height = 60
-materials = Array[ExtResource("1_c0a1t")]([ExtResource("3_j6vh3"), ExtResource("2_b4kyp")])
 layer_boundaries = Array[float]([0.65])
 layer_variation = Array[float]([0.55])
 frequency = 0.7
 fractal_type = 1
 gain = 0.3
 octaves = 3
+materials = Array[ExtResource("1_c0a1t")]([ExtResource("3_j6vh3"), ExtResource("4_cu7nt")])
+ladder = ExtResource("1_qep1i")
+layer_steps = PackedInt32Array(0, 1, 2, 3)
 passes = Array[ExtResource("4_j6vh3")]([SubResource("Resource_2rv30")])
 id = &"small-asteroid"
 display_name = "Small Asteroid"

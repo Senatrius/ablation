@@ -256,7 +256,8 @@ func _contents_of(indices: PackedInt32Array) -> Dictionary[StringName, int]:
 
 	for i: int in indices:
 		var material: MaterialDefinition = materials[cells[i] - 1]
-		kg[material.id] = kg.get(material.id, 0.0) + material.kg_per_cell
+		var resource: StringName = material.yields if material.yields != &"" else material.id
+		kg[resource] = kg.get(resource, 0.0) + material.kg_per_cell
 
 	var contents: Dictionary[StringName, int] = {}
 

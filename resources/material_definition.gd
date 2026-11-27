@@ -5,6 +5,7 @@ enum Effects {NORMAL, VOLATILE, GAS}
 @export var grid_id: int
 @export var durability: float
 @export var colours: PackedColorArray
+@export var yields: StringName
 @export var grain_size: float
 @export var kg_per_cell: float
 @export var effect: Effects

@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="MaterialDefinition" format=3 uid="uid://bewim6of4bcq7"]
+
+[ext_resource type="Script" uid="uid://jpym26b3k13k" path="res://resources/material_definition.gd" id="1_puiy8"]
+
+[resource]
+script = ExtResource("1_puiy8")
+grid_id = 4
+durability = 20.0
+colours = PackedColorArray(0.38668457, 0.33565506, 0.31652954, 1, 0.37451044, 0.31969702, 0.2991528, 1)
+grain_size = 4.0
+kg_per_cell = 5.0
+density = 50.0
+id = &"breccia"
+display_name = "Breccia"
+description = "& Compacted Roll"
+metadata/_custom_type_script = "uid://jpym26b3k13k"

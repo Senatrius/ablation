@@ -22,6 +22,7 @@ func _process(delta: float) -> void:
 		_return_progress = 0.0
 
 	_hud.show_return_progress(_return_progress)
+	_hud.show_distance($AsteroidField.distance_from_start(_player.global_position))
 
 	if _return_progress >= 1.0:
 		_ending = true

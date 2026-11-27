@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="MaterialDefinition" format=3 uid="uid://bvjcx26qwgk0m"]
+
+[ext_resource type="Script" uid="uid://jpym26b3k13k" path="res://resources/material_definition.gd" id="1_mbm4y"]
+
+[resource]
+script = ExtResource("1_mbm4y")
+grid_id = 6
+durability = 120.0
+colours = PackedColorArray(0.08785824, 0.104322724, 0.10046371, 1, 0.18471658, 0.20944008, 0.18844247, 1)
+grain_size = 2.0
+kg_per_cell = 25.0
+id = &"olivine"
+display_name = "Olivine"
+metadata/_custom_type_script = "uid://jpym26b3k13k"

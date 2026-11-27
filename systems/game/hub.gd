@@ -85,7 +85,7 @@ func _cost_text(cost: Dictionary[StringName, int]) -> String:
 	var parts: PackedStringArray = PackedStringArray()
 
 	for id: StringName in cost:
-		parts.append("%s %s kg" % [id, HUD.format_kg(cost[id])])
+		parts.append("%s %s kg" % [id, HUD.format_number(cost[id])])
 
 	return ", ".join(parts)
 
@@ -98,9 +98,9 @@ func _requirements_text(upgrade: UpgradeDefinition) -> String:
 	return ", ".join(parts)
 
 func _storage_text() -> String:
-	var lines: PackedStringArray = PackedStringArray(["Total: %s kg" % HUD.format_kg(Session.storage_total())])
+	var lines: PackedStringArray = PackedStringArray(["Total: %s kg" % HUD.format_number(Session.storage_total())])
 
 	for id: StringName in Session.storage:
-		lines.append("  %s: %s kg" % [id, HUD.format_kg(Session.storage[id])])
+		lines.append("  %s: %s kg" % [id, HUD.format_number(Session.storage[id])])
 
 	return "\n".join(lines)

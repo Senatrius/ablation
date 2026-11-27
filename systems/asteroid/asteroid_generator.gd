@@ -1,30 +1,25 @@
 class_name AsteroidGenerator extends RefCounted
 
-## This asteroid's materials: the definition's list, plus anything passes added.
 var materials: Array[MaterialDefinition] = []
-## Per cell: 0 = centre, 1 = surface. Filled during shape generation.
 var depth: PackedFloat32Array
 
 var _data: AsteroidDefinition
 
-
-func _init(data: AsteroidDefinition) -> void:
+func _init(data: AsteroidDefinition, tier: int = 0) -> void:
 	_data = data
-	materials = data.materials.duplicate()
+	materials = data.resolve_materials(tier)
 
-
-## The cell id for a material, adding it to this asteroid's list if needed.
 func material_id(material: MaterialDefinition) -> int:
 	var index: int = materials.find(material)
+
 	if index == -1:
 		materials.append(material)
 		index = materials.size() - 1
-	return index + 1
 
+	return index + 1
 
 func get_noise_bytes(noise: FastNoiseLite, size: Vector2i) -> PackedByteArray:
 	return noise.get_image(size.x, size.y, false, false, false).get_data()
-
 
 func generate_noise(gen_seed: int) -> FastNoiseLite:
 	var noise: FastNoiseLite = FastNoiseLite.new()
@@ -35,7 +30,6 @@ func generate_noise(gen_seed: int) -> FastNoiseLite:
 	noise.fractal_gain = _data.gain
 	noise.fractal_octaves = _data.octaves
 	return noise
-
 
 func generate_cells(size: Vector2i, gen_seed: int) -> PackedByteArray:
 	var cells: PackedByteArray = PackedByteArray()
@@ -60,8 +54,8 @@ func generate_cells(size: Vector2i, gen_seed: int) -> PackedByteArray:
 
 	var depth_fields: Array[PackedByteArray] = []
 	for b: int in _data.layer_boundaries.size():
-		depth_noise.offset = Vector3(b * 1000.0, 0.0, 0.0)       # move first...
-		depth_fields.append(get_noise_bytes(depth_noise, size))  # ...then sample
+		depth_noise.offset = Vector3(b * 1000.0, 0.0, 0.0)
+		depth_fields.append(get_noise_bytes(depth_noise, size))
 
 	for y: int in size.y:
 		for x: int in size.x:
@@ -86,7 +80,6 @@ func generate_cells(size: Vector2i, gen_seed: int) -> PackedByteArray:
 	for generation_pass: GenerationPass in _data.passes:
 		cells = generation_pass.apply(self, cells, size, rng)
 	return cells
-
 
 func _pick_layer(d: float, depth_fields: Array[PackedByteArray], i: int) -> int:
 	for b: int in _data.layer_boundaries.size():

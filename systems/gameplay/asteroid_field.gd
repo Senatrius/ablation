@@ -4,8 +4,12 @@ class_name AsteroidField extends Node2D
 @export var spawn_entries: Array[AsteroidSpawn] = []
 
 @export_group("Density")
-@export var live_count: int = 20
+@export var live_count: int = 30
 @export var spawn_interval: float = 0.25
+
+@export_group("Difficulty")
+@export var tier_step: float = 2500.0
+@export var stale_distance: float = 1500.0
 
 @export_group("Spawn Fields")
 @export var spawn_field_start: int = 100
@@ -25,6 +29,7 @@ class_name AsteroidField extends Node2D
 
 const PLACEMENT_ATTEMPTS: int = 20
 
+var _origin: Vector2 = Vector2.ZERO
 var _asteroids: Array[Asteroid] = []
 var _player: RigidBody2D
 var _rng: RandomNumberGenerator = RandomNumberGenerator.new()
@@ -39,6 +44,8 @@ func _ready() -> void:
 		_total_weight += entry.spawn_weight
 
 	_player = get_tree().get_first_node_in_group("player") as RigidBody2D
+	if is_instance_valid(_player):
+		_origin = _player.global_position
 
 	for child: Node in get_children():
 		if child is Asteroid:
@@ -60,7 +67,8 @@ func _prepopulate() -> void:
 	var definitions: Array[AsteroidDefinition] = []
 	var seeds: Array[int] = []
 	for n: int in count:
-		definitions.append(_pick_definition())
+		var definition: AsteroidDefinition = _pick_definition(distance_from_start(_player.global_position))
+		if definition != null: definitions.append(definition)
 		seeds.append(_new_seed())
 
 	var results: Array[AsteroidBlueprint] = []
@@ -83,10 +91,15 @@ func _physics_process(delta: float) -> void:
 	_despawn_far()
 
 	while _ready_blueprints.size() + _tasks.size() < prefetch_count:
-		_request_blueprint()
+		if not _request_blueprint():
+			break
+
+	var current: float = distance_from_start(_player.global_position)
+	while not _ready_blueprints.is_empty() and absf(_ready_blueprints[0].spawn_distance - current) > stale_distance:
+		_ready_blueprints.pop_front()
 
 	_spawn_timer -= delta
-	if _spawn_timer > 0.0 or _asteroids.size() >= live_count:
+	if _spawn_timer > 0.0 or _asteroids.size() >= live_count or _ready_blueprints.is_empty():
 		return
 
 	_spawn_timer = spawn_interval
@@ -99,17 +112,30 @@ func _physics_process(delta: float) -> void:
 		_ready_blueprints.pop_front()
 		_spawn(bp, position_found)
 
+func distance_from_start(point: Vector2) -> float:
+	return point.distance_to(_origin)
+
 func _exit_tree() -> void:
 	for task: int in _tasks:
 		WorkerThreadPool.wait_for_task_completion(task)
 	_tasks.clear()
 
-func _request_blueprint() -> void:
-	var definition: AsteroidDefinition = _pick_definition()
-	_tasks.append(WorkerThreadPool.add_task(_build_in_background.bind(definition, _new_seed())))
+func _request_blueprint() -> bool:
+	var distance: float = distance_from_start(_player.global_position)
+	var definition: AsteroidDefinition = _pick_definition(distance)
 
-func _build_in_background(definition: AsteroidDefinition, gen_seed: int) -> void:
-	var bp: AsteroidBlueprint = AsteroidBlueprint.generate(definition, gen_seed)
+	if definition == null:
+		return false
+
+	var tier: int = tier_at(distance)
+	_tasks.append(WorkerThreadPool.add_task(
+		_build_in_background.bind(definition, _new_seed(), distance, tier)))
+
+	return true
+
+func _build_in_background(definition: AsteroidDefinition, gen_seed: int, distance: float, toughness: float) -> void:
+	var bp: AsteroidBlueprint = AsteroidBlueprint.generate(definition, gen_seed, false, toughness)
+	bp.spawn_distance = distance
 	_receive_blueprint.call_deferred(bp)
 
 func _receive_blueprint(bp: AsteroidBlueprint) -> void:
@@ -153,6 +179,15 @@ func _find_position(size: Vector2i, min_distance: float, max_distance: float) ->
 
 	return Vector2.INF
 
+func tier_at(distance: float) -> int:
+	var exact: float = distance / tier_step
+	var tier: int = floori(exact)
+
+	if _rng.randf() < exact - tier:
+		tier += 1
+
+	return tier
+
 func _is_clear(point: Vector2, radius: float) -> bool:
 	for asteroid: Asteroid in _asteroids:
 		var other_radius: float = maxf(asteroid.size.x, asteroid.size.y) * 0.5
@@ -168,17 +203,30 @@ func _despawn_far() -> void:
 		if asteroid.global_position.distance_to(_player.global_position) > despawn_field_start:
 			asteroid.queue_free()
 
+func _pick_definition(distance: float) -> AsteroidDefinition:
+	var total: float = 0.0
+	for entry: AsteroidSpawn in spawn_entries:
+		total += entry.weight_at(distance)
 
-func _pick_definition() -> AsteroidDefinition:
-	var roll: float = _rng.randf() * _total_weight
+	if total <= 0.0:
+		return null
+
+	var roll: float = _rng.randf() * total
+	var last: AsteroidDefinition = null
 
 	for entry: AsteroidSpawn in spawn_entries:
-		roll -= entry.spawn_weight
+		var weight: float = entry.weight_at(distance)
+
+		if weight <= 0.0:
+			continue
+
+		last = entry.asteroid_def
+		roll -= weight
 
 		if roll <= 0.0:
 			return entry.asteroid_def
 
-	return spawn_entries.back().definition
+	return last
 
 func _view_radius() -> float:
 	var view: Vector2 = get_viewport_rect().size

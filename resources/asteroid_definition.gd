@@ -2,7 +2,6 @@ class_name AsteroidDefinition extends ContentDefinition
 
 @export var width: int
 @export var height: int
-@export var materials: Array[MaterialDefinition]
 @export_range(0.0, 1.0, 0.01) var layer_boundaries: Array[float]
 @export_range(0.0, 1.0, 0.01) var layer_variation: Array[float]
 
@@ -21,6 +20,11 @@ class_name AsteroidDefinition extends ContentDefinition
 @export_range(1, 64, 1, "or_greater") var min_chunk_cells: int = 8
 @export_range(0.05, 4.0, 0.05, "or_greater") var chunk_toughness: float = 1.0
 
+@export_group("Materials")
+@export var materials: Array[MaterialDefinition] = []
+@export var ladder: MaterialLadder
+@export var layer_steps: PackedInt32Array
+
 @export_group("Physics")
 @export_range(0.0001, 1.0, 0.0001, "or_greater") var mass_per_density: float = 0.01
 @export_range(0.0, 1.0, 0.01, "or_greater", "suffix:s") var collision_rebuild_interval: float = 0.1
@@ -37,3 +41,14 @@ class_name AsteroidDefinition extends ContentDefinition
 
 @export_group("Generation")
 @export var passes: Array[GenerationPass] = []
+
+func resolve_materials(tier: int) -> Array[MaterialDefinition]:
+	if ladder == null:
+		return materials.duplicate()
+
+	var result: Array[MaterialDefinition] = []
+
+	for step: int in layer_steps:
+		result.append(ladder.at(step + tier))
+
+	return result

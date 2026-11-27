@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="MaterialLadder" format=3 uid="uid://47ubqy0gdsgc"]
+
+[ext_resource type="Script" uid="uid://2l6vp1aj0ao4" path="res://resources/material_ladder.gd" id="1_fwax6"]
+[ext_resource type="Script" uid="uid://jpym26b3k13k" path="res://resources/material_definition.gd" id="2_fi0x7"]
+[ext_resource type="Resource" uid="uid://qt65oenuf3lh" path="res://data/materials/spacedust.tres" id="3_424e5"]
+[ext_resource type="Resource" uid="uid://dqip2hdtfcsa6" path="res://data/materials/regolith.tres" id="4_hl7su"]
+[ext_resource type="Resource" uid="uid://bewim6of4bcq7" path="res://data/materials/breccia.tres" id="5_6n6pc"]
+[ext_resource type="Resource" uid="uid://nogl4rqjmtq4" path="res://data/materials/carbonite.tres" id="6_t7ygh"]
+[ext_resource type="Resource" uid="uid://d2dt8vaycpgbx" path="res://data/materials/basalt.tres" id="7_plv02"]
+[ext_resource type="Resource" uid="uid://bvjcx26qwgk0m" path="res://data/materials/olivine.tres" id="8_e5l2x"]
+
+[resource]
+script = ExtResource("1_fwax6")
+steps = Array[ExtResource("2_fi0x7")]([ExtResource("3_424e5"), ExtResource("4_hl7su"), ExtResource("5_6n6pc"), ExtResource("6_t7ygh"), ExtResource("7_plv02"), ExtResource("8_e5l2x")])
+metadata/_custom_type_script = "uid://2l6vp1aj0ao4"

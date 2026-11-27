@@ -1,16 +1,16 @@
 [gd_resource type="Resource" script_class="MaterialDefinition" format=3 uid="uid://dqip2hdtfcsa6"]
 
-[ext_resource type="Script" uid="uid://jpym26b3k13k" path="res://resources/material_definition.gd" id="1_8mstb"]
+[ext_resource type="Script" uid="uid://jpym26b3k13k" path="res://resources/material_definition.gd" id="1_i5j80"]
 
 [resource]
-script = ExtResource("1_8mstb")
+script = ExtResource("1_i5j80")
 grid_id = 2
 durability = 2.0
 colours = PackedColorArray(0.3276852, 0.34368455, 0.34303072, 1, 0.4376267, 0.40728813, 0.41506383, 1)
 grain_size = 6.0
 kg_per_cell = 1.0
 density = 5.0
-id = &"rock"
-display_name = "Rock"
+id = &"regolith"
+display_name = "Regolith"
 description = "& Roll"
 metadata/_custom_type_script = "uid://jpym26b3k13k"
