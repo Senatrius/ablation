@@ -6,6 +6,7 @@ enum Effects {NORMAL, VOLATILE, GAS}
 @export var hardness: float
 @export var colours: PackedColorArray
 @export var yields: StringName
+@export var trace_resources: Dictionary[StringName, float]
 @export var grain_size: float
 @export var kg_per_cell: float
 @export var effect: Effects

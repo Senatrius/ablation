@@ -32,8 +32,6 @@ func _ready() -> void:
 
 	_load_game()
 
-
-
 func level_of(upgrade: UpgradeDefinition) -> int:
 	return upgrade_levels.get(upgrade.id, 0)
 
@@ -43,7 +41,7 @@ func is_revealed(upgrade: UpgradeDefinition) -> bool:
 	if next == null:
 		return true
 
-	for id: StringName in next.cost:
+	for id: StringName in next.cost_grams():
 		if not discovered.has(id):
 			return false
 
@@ -65,7 +63,7 @@ func can_afford(cost: Dictionary[StringName, int]) -> bool:
 
 func can_buy(upgrade: UpgradeDefinition) -> bool:
 	var next: UpgradeLevel = upgrade.next_level(level_of(upgrade))
-	return next != null and is_revealed(upgrade) and requirements_met(upgrade) and can_afford(next.cost)
+	return next != null and is_revealed(upgrade) and requirements_met(upgrade) and can_afford(next.cost_grams())
 
 func buy(upgrade: UpgradeDefinition) -> bool:
 	if not can_buy(upgrade):
@@ -73,8 +71,8 @@ func buy(upgrade: UpgradeDefinition) -> bool:
 
 	var next: UpgradeLevel = upgrade.next_level(level_of(upgrade))
 
-	for id: StringName in next.cost:
-		storage[id] -= next.cost[id]
+	for id: StringName in next.cost_grams():
+		storage[id] -= next.cost_grams()[id]
 
 	upgrade_levels[upgrade.id] = level_of(upgrade) + 1
 	storage_changed.emit()
@@ -136,7 +134,7 @@ func refund_upgrades() -> void:
 		var owned: int = mini(level_of(upgrade), upgrade.max_level())
 
 		for n: int in owned:
-			var cost: Dictionary[StringName, int] = upgrade.levels[n].cost
+			var cost: Dictionary[StringName, int] = upgrade.levels[n].cost_grams()
 
 			for id: StringName in cost:
 				storage[id] = storage.get(id, 0) + cost[id]
@@ -163,6 +161,12 @@ func save_game() -> void:
 		"upgrades": _string_keys(upgrade_levels),
 		"discovered": discovered.keys().map(func(id: StringName) -> String: return String(id)),
 	}
+
+	var version: int = int(data.get("version", 0))
+
+	if version > SAVE_VERSION:
+		push_error("This save is from a newer version of the game (format %d); not loading it." % version)
+		return
 
 	var folder: String = SAVE_PATH.get_base_dir()
 	if not DirAccess.dir_exists_absolute(folder):
@@ -209,6 +213,7 @@ func _load_game() -> void:
 
 	var data: Dictionary = parsed
 	var version: int = int(data.get("version", 0))
+	var storage_scale: int = Mass.GRAMS_PER_KG if version < 2 else 1
 
 	if version > SAVE_VERSION:
 		push_error("This save is from a newer version of the game (format %d); not loading it." % version)
@@ -222,7 +227,7 @@ func _load_game() -> void:
 			push_warning("Save has unknown resource '%s'; dropped." % key)
 			continue
 
-		storage[id] = int(saved_storage[key])
+		storage[id] = int(saved_storage[key]) * storage_scale
 
 	var saved_upgrades: Dictionary = data.get("upgrades", {})
 	for key: String in saved_upgrades:

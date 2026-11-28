@@ -256,15 +256,19 @@ func _contents_of(indices: PackedInt32Array) -> Dictionary[StringName, int]:
 
 	for i: int in indices:
 		var material: MaterialDefinition = materials[cells[i] - 1]
-		var resource: StringName = material.yields if material.yields != &"" else material.id
-		kg[resource] = kg.get(resource, 0.0) + material.kg_per_cell
+		var bulk: StringName = material.yields if material.yields != &"" else material.id
+		kg[bulk] = kg.get(bulk, 0.0) + material.kg_per_cell
+
+		for trace: StringName in material.trace_resources:
+			kg[trace] = kg.get(trace, 0.0) + material.kg_per_cell * material.traces[trace] / 100.0
 
 	var contents: Dictionary[StringName, int] = {}
 
 	for id: StringName in kg:
-		var amount: int = roundi(kg[id])
-		if amount > 0:
-			contents[id] = amount
+		var grams: int = Mass.from_kg(kg[id])
+
+		if grams > 0:
+			contents[id] = grams
 
 	return contents
 

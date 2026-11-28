@@ -1,4 +1,5 @@
 class_name Cargo extends RefCounted
+@warning_ignore_start("integer_division")
 
 signal changed
 
@@ -10,7 +11,7 @@ var _contents: Dictionary[StringName, int] = {}
 func free_space() -> int:
 	return maxi(capacity - used, 0)
 
-func amount(id: StringName) -> int:
+func _amount(id: StringName) -> int:
 	return _contents.get(id, 0)
 
 func contents() -> Dictionary[StringName, int]:
@@ -39,27 +40,41 @@ func add(items: Dictionary[StringName, int]) -> Dictionary[StringName, int]:
 func set_capacity(new_capacity: int) -> Dictionary[StringName, int]:
 	capacity = maxi(new_capacity, 0)
 	var spilled: Dictionary[StringName, int] = {}
+	var excess: int = used - capacity
 
-	while used > capacity:
-		var roll: int = randi_range(0, used - 1)
-		var id: StringName = &""
+	if excess > 0 and used > 0:
+		var to_spill: int = excess
 
-		for candidate: StringName in _contents:
-			roll -= _contents[candidate]
+		for id: StringName in _contents.keys():
+			var lost: int = mini(excess * _contents[id] / used, _contents[id])
+			_remove(id, lost, spilled)
+			to_spill -= lost
 
-			if roll < 0:
-				id = candidate
-				break
+		while to_spill > 0 and not _contents.is_empty():
+			var largest: StringName = _contents.keys()[0]
 
-		_contents[id] -= 1
-		if _contents[id] == 0:
-			_contents.erase(id)
+			for id: StringName in _contents:
+				if _contents[id] > _contents[largest]:
+					largest = id
 
-		used -= 1
-		spilled[id] = spilled.get(id, 0) + 1
+			var lost: int = mini(to_spill, _contents[largest])
+
+			_remove(largest, lost, spilled)
+			to_spill -= lost
 
 	changed.emit()
 	return spilled
+
+func _remove(id: StringName, amount: int, spilled: Dictionary[StringName, int]) -> void:
+	if amount <= 0:
+		return
+
+	_contents[id] -= amount
+	used -= amount
+	spilled[id] = spilled.get(id, 0) + amount
+
+	if _contents[id] <= 0:
+		_contents.erase(id)
 
 func take_all() -> Dictionary[StringName, int]:
 	var everything: Dictionary[StringName, int] = _contents

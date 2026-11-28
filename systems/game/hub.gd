@@ -12,7 +12,7 @@ var _refresh_queued: bool = false
 func _ready() -> void:
 	play_button.pressed.connect(Session.start_run)
 	refund_button.pressed.connect(Session.refund_upgrades)
-	grant_button.pressed.connect(Session.debug_grant.bind(10000))
+	grant_button.pressed.connect(Session.debug_grant.bind(Mass.from_kg(10)))
 	grant_button.visible = OS.is_debug_build()
 
 	Session.storage_changed.connect(_queue_refresh)
@@ -71,9 +71,9 @@ func _make_row(upgrade: UpgradeDefinition) -> Control:
 		button.disabled = true
 	else:
 		lines.append(next.description)
-		lines.append("Cost: %s" % _cost_text(next.cost))
+		lines.append("Cost: %s" % _cost_text(next.cost_grams()))
 		button.text = "Buy"
-		button.disabled = not Session.can_afford(next.cost)
+		button.disabled = not Session.can_afford(next.cost_grams())
 		button.pressed.connect(Session.buy.bind(upgrade))
 
 	info.text = "\n".join(lines)
