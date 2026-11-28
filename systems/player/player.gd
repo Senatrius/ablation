@@ -5,7 +5,7 @@ signal destroyed()
 @export var hardpoints: Array[Marker2D] = []
 @export var core_data: ShipCore
 @export var weapon_def: WeaponDefinition
-@export var cargo_capacity: int = 5000
+@export var cargo_capacity_kg: int = 5000
 @export var spill_speed: float = 30.0
 
 @export_group("Ship Parts")
@@ -75,9 +75,8 @@ func _recalculate_damage_effects() -> void:
 		var wing: ShipPart = _part_of(weapon)
 		weapon.misfire_chance = wing.damage_ratio() * max_misfire_chance if wing else 0.0
 
-	var half: float = cargo_capacity * 0.5
-	var spilled: Dictionary[StringName, int] = cargo.set_capacity(
-		int(half * left_cargo.effectiveness(0.0) + half * right_cargo.effectiveness(0.0)))
+	var half: float = Mass.from_kg(cargo_capacity_kg) * 0.5
+	var spilled: Dictionary[StringName, int] = cargo.set_capacity(int(half * left_cargo.effectiveness(0.0) + half * right_cargo.effectiveness(0.0)))
 
 	if not spilled.is_empty():
 		_eject(spilled)

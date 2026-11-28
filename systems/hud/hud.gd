@@ -16,23 +16,13 @@ func show_return_progress(ratio: float) -> void:
 func _refresh() -> void:
 	var cargo: Cargo = Session.cargo
 	var lines: PackedStringArray = PackedStringArray([
-		"Cargo %s / %s Kg" % [HUD.format_number(cargo.used), HUD.format_number(cargo.capacity)]])
+		"Cargo %s / %s" % [Mass.format(cargo.used, 100), Mass.format(cargo.capacity, 100)]])
 	var contents: Dictionary[StringName, int] = cargo.contents()
 
 	for id: StringName in contents:
-		lines.append("  %s: %s Kg" % [id, HUD.format_number(contents[id])])
+		lines.append("  %s: %s" % [id, Mass.format(contents[id], 100)])
 
 	cargo_label.text = "\n".join(lines)
 
-static func format_number(amount: int) -> String:
-	var digits: String = str(absi(amount))
-	var result: String = ""
-
-	while digits.length() > 3:
-		result = "," + digits.right(3) + result
-		digits = digits.left(digits.length() - 3)
-
-	return ("-" if amount < 0 else "") + digits + result
-
 func show_distance(distance: float) -> void:
-	distance_label.text = "Distance: %s" % HUD.format_number(roundi(distance))
+	distance_label.text = "Distance: %s" % Format.number(roundi(distance))

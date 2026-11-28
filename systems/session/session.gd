@@ -4,7 +4,7 @@ signal storage_changed
 signal upgrades_changed
 
 const SAVE_PATH: String = "user://save_files/save.json"
-const SAVE_VERSION: int = 1
+const SAVE_VERSION: int = 2
 const HUB_SCENE: String = "uid://d1w5n631p8hf2"
 const GAME_SCENE: String = "uid://dkw67lh51fmdc"
 const SALVAGE_ON_DEATH: float = 0.1

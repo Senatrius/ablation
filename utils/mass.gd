@@ -21,6 +21,6 @@ static func format(grams: int, step: int = 10) -> String:
 
 	var text: String = String.num(rounded / float(GRAMS_PER_KG), decimals)
 	var parts: PackedStringArray = text.split(".")
-	var whole: String = HUD.format_number(int(parts[0]))
+	var whole: String = Format.number(int(parts[0]))
 
 	return whole + ("." + parts[1] if parts.size() > 1 else "") + "Kg"

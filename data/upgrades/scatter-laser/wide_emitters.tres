@@ -12,8 +12,8 @@ metadata/_custom_type_script = "uid://crudet8bbddd2"
 
 [sub_resource type="Resource" id="Resource_3i4xv"]
 script = ExtResource("1_odw0d")
-cost = Dictionary[StringName, int]({
-&"stone": 1000
+cost = Dictionary[StringName, float]({
+&"stone": 1000.0
 })
 modifiers = Array[ExtResource("2_3i4xv")]([SubResource("Resource_svqck")])
 metadata/_custom_type_script = "uid://dy8w52jgguqin"
@@ -26,8 +26,8 @@ metadata/_custom_type_script = "uid://crudet8bbddd2"
 
 [sub_resource type="Resource" id="Resource_jy1tt"]
 script = ExtResource("1_odw0d")
-cost = Dictionary[StringName, int]({
-&"stone": 1000
+cost = Dictionary[StringName, float]({
+&"stone": 1000.0
 })
 modifiers = Array[ExtResource("2_3i4xv")]([SubResource("Resource_q866w")])
 metadata/_custom_type_script = "uid://dy8w52jgguqin"
