@@ -4,11 +4,12 @@
 
 [resource]
 script = ExtResource("1_mbm4y")
-grid_id = 6
 durability = 120.0
 colours = PackedColorArray(0.08785824, 0.104322724, 0.10046371, 1, 0.18471658, 0.20944008, 0.18844247, 1)
+yields = &"stone"
 grain_size = 2.0
 kg_per_cell = 25.0
+density = 250.0
 id = &"olivine"
 display_name = "Olivine"
 metadata/_custom_type_script = "uid://jpym26b3k13k"

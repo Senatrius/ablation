@@ -15,14 +15,17 @@ var storage: Dictionary[StringName, int] = {}
 var run_active: bool = false
 var upgrade_levels: Dictionary[StringName, int] = {}
 var discovered: Dictionary[StringName, bool] = {}
-var known_materials: Array[StringName] = []
+var known_resources: Array[StringName] = []
 
 func _ready() -> void:
 	cargo.changed.connect(_note_discoveries)
 
 	for resource: Resource in ContentLibrary.load_all("res://data/materials"):
 		if resource is MaterialDefinition:
-			known_materials.append(resource.id)
+			var id: StringName = resource.yields if resource.yields != &"" else resource.id
+
+			if not known_resources.has(id):
+				known_resources.append(id)
 
 	if OS.is_debug_build():
 		_validate_content()
@@ -125,7 +128,7 @@ func _validate_content() -> void:
 		if resource is ContentDefinition:
 			targets[resource.id] = resource
 
-	for problem: String in UPGRADE_LIST.validate(known_materials, targets):
+	for problem: String in UPGRADE_LIST.validate(known_resources, targets):
 		push_error(problem)
 
 func refund_upgrades() -> void:
@@ -145,7 +148,7 @@ func refund_upgrades() -> void:
 	save_game()
 
 func debug_grant(amount: int) -> void:
-	for id: StringName in known_materials:
+	for id: StringName in known_resources:
 		storage[id] = storage.get(id, 0) + amount
 		discovered[id] = true
 
@@ -215,8 +218,8 @@ func _load_game() -> void:
 	for key: String in saved_storage:
 		var id: StringName = StringName(key)
 
-		if not known_materials.has(id):
-			push_warning("Save has unknown material '%s'; dropped." % key)
+		if not known_resources.has(id):
+			push_warning("Save has unknown resource '%s'; dropped." % key)
 			continue
 
 		storage[id] = int(saved_storage[key])

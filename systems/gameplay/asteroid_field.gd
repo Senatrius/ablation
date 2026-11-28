@@ -60,16 +60,25 @@ func _new_seed() -> int:
 func _prepopulate() -> void:
 	if not is_instance_valid(_player) or spawn_entries.is_empty():
 		return
+
 	var count: int = live_count - _asteroids.size()
 	if count <= 0:
 		return
 
+	var distance: float = distance_from_start(_player.global_position)
 	var definitions: Array[AsteroidDefinition] = []
 	var seeds: Array[int] = []
+	var tiers: Array[int] = []
+
 	for n: int in count:
 		var definition: AsteroidDefinition = _pick_definition(distance_from_start(_player.global_position))
-		if definition != null: definitions.append(definition)
+
+		if definition == null:
+			continue
+
+		definitions.append(definition)
 		seeds.append(_new_seed())
+		tiers.append(tier_at(distance))
 
 	var results: Array[AsteroidBlueprint] = []
 	results.resize(count)
@@ -133,8 +142,8 @@ func _request_blueprint() -> bool:
 
 	return true
 
-func _build_in_background(definition: AsteroidDefinition, gen_seed: int, distance: float, toughness: float) -> void:
-	var bp: AsteroidBlueprint = AsteroidBlueprint.generate(definition, gen_seed, false, toughness)
+func _build_in_background(definition: AsteroidDefinition, gen_seed: int, distance: float, tier: int) -> void:
+	var bp: AsteroidBlueprint = AsteroidBlueprint.generate(definition, gen_seed, false, tier)
 	bp.spawn_distance = distance
 	_receive_blueprint.call_deferred(bp)
 

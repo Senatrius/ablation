@@ -17,10 +17,10 @@ var source_rect: Rect2i
 var timings: Dictionary[StringName, float] = {}
 var spawn_distance: float = 0.0
 
-static func generate(definition: AsteroidDefinition, gen_seed: int, debug_chunks: bool = false, toughness_scale: float = 1.0) -> AsteroidBlueprint:
+static func generate(definition: AsteroidDefinition, gen_seed: int, debug_chunks: bool = false, tier: int = 0) -> AsteroidBlueprint:
 	var bp: AsteroidBlueprint = AsteroidBlueprint.new()
 	var t: int = Time.get_ticks_usec()
-	var generator: AsteroidGenerator = AsteroidGenerator.new(definition)
+	var generator: AsteroidGenerator = AsteroidGenerator.new(definition, tier)
 
 	bp.asteroid_def = definition
 	bp.used_seed = gen_seed
@@ -34,7 +34,7 @@ static func generate(definition: AsteroidDefinition, gen_seed: int, debug_chunks
 		if bp.cells[i] != 0:
 			bp.health[i] = bp.materials[bp.cells[i] - 1].durability
 
-	bp.chunks = ChunkMap.build(bp.cells, bp.size, bp.materials, definition.chunk_size, definition.chunk_size_variation, definition.min_chunk_cells, definition.chunk_toughness * toughness_scale, gen_seed)
+	bp.chunks = ChunkMap.build(bp.cells, bp.size, bp.materials, definition.chunk_size, definition.chunk_size_variation, definition.min_chunk_cells, definition.chunk_toughness, gen_seed)
 	bp.chunks.find_pockets(bp.cells, bp.materials)
 	t = bp._lap(&"chunks", t)
 

@@ -7,6 +7,7 @@ script = ExtResource("1_83rp1")
 grid_id = 3
 durability = 6.0
 colours = PackedColorArray(0.36655214, 0.26911578, 0.29340053, 1, 0.39906186, 0.31175, 0.30535513, 1, 0.36078432, 0.35686275, 0.34117648, 1)
+yields = &"stone"
 grain_size = 5.0
 kg_per_cell = 2.0
 density = 15.0

@@ -4,11 +4,12 @@
 
 [resource]
 script = ExtResource("1_i3pww")
-grid_id = 5
 durability = 50.0
 colours = PackedColorArray(0.20511743, 0.20511743, 0.20511743, 1, 0.2159017, 0.21590173, 0.2159017, 1)
+yields = &"stone"
 grain_size = 3.0
 kg_per_cell = 10.0
+density = 120.0
 id = &"basalt"
 display_name = "Basalt"
 metadata/_custom_type_script = "uid://jpym26b3k13k"

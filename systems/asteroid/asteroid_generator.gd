@@ -9,6 +9,10 @@ func _init(data: AsteroidDefinition, tier: int = 0) -> void:
 	_data = data
 	materials = data.resolve_materials(tier)
 
+	assert(materials.size() == data.layer_boundaries.size() + 1,
+		"%s: %d layer materials but %d boundaries; needs exactly one more material than boundaries" %
+		[data.id, materials.size(), data.layer_boundaries.size()])
+
 func material_id(material: MaterialDefinition) -> int:
 	var index: int = materials.find(material)
 
@@ -84,6 +88,8 @@ func generate_cells(size: Vector2i, gen_seed: int) -> PackedByteArray:
 func _pick_layer(d: float, depth_fields: Array[PackedByteArray], i: int) -> int:
 	for b: int in _data.layer_boundaries.size():
 		var wobble: float = (depth_fields[b][i] / 127.5 - 1.0) * _data.layer_variation[b]
+
 		if d + wobble >= _data.layer_boundaries[b]:
 			return b
-	return _data.materials.size() - 1
+
+	return materials.size() - 1

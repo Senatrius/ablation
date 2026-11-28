@@ -13,7 +13,7 @@ metadata/_custom_type_script = "uid://crudet8bbddd2"
 [sub_resource type="Resource" id="Resource_u8rsb"]
 script = ExtResource("1_u3vtb")
 cost = Dictionary[StringName, int]({
-&"rock": 2000
+&"stone": 1000
 })
 modifiers = Array[ExtResource("2_tjhpt")]([SubResource("Resource_re42m")])
 metadata/_custom_type_script = "uid://dy8w52jgguqin"
@@ -27,8 +27,7 @@ metadata/_custom_type_script = "uid://crudet8bbddd2"
 [sub_resource type="Resource" id="Resource_nqemp"]
 script = ExtResource("1_u3vtb")
 cost = Dictionary[StringName, int]({
-&"dense-rock": 500,
-&"rock": 3000
+&"stone": 1000
 })
 modifiers = Array[ExtResource("2_tjhpt")]([SubResource("Resource_vgabc")])
 metadata/_custom_type_script = "uid://dy8w52jgguqin"
@@ -41,6 +40,9 @@ metadata/_custom_type_script = "uid://crudet8bbddd2"
 
 [sub_resource type="Resource" id="Resource_lga6q"]
 script = ExtResource("1_u3vtb")
+cost = Dictionary[StringName, int]({
+&"stone": 1000
+})
 modifiers = Array[ExtResource("2_tjhpt")]([SubResource("Resource_qac8s")])
 metadata/_custom_type_script = "uid://dy8w52jgguqin"
 
